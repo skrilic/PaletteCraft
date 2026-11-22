@@ -48,8 +48,8 @@ python3 -m http.server -d target/web 8080     # serve it locally
   latest release via `gh`, and copies the built web app into `app/`. Local build:
   `python3 site/build.py --app app/target/web` (output `_site/`, git-ignored).
   `site/make_images.py` renders the pictures in `site/img/` with the app (`--view`,
-  `--window`). `site/sw.js` only removes the web app's old copy from the site root (the
-  app's first home): keep it. Update `CHANGELOG.md` with every user-visible change, and
+  `--window`). `layout.html` counts visits with GoatCounter (palettecraft.goatcounter.com;
+  site pages only, never the web app): mention any change to it in `PRIVACY.md`. Update `CHANGELOG.md` with every user-visible change, and
   `PRIVACY.md` if what the app stores or sends changes.
   Web app icons (`app/web/icons/`) come from `make_icons.py` (`--web-only` renders just
   those; it falls back to `rsvg-convert` without Inkscape). `sw.js` lists every file it

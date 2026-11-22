@@ -1,9 +1,9 @@
 # Privacy policy
 
-Last updated: 20 November 2026
+Last updated: 22 November 2026
 
 PaletteCraft is a free, open-source app for painters. It does not collect,
-send or sell any personal data. This page explains what stays where.
+send or sell any personal data; this website only counts visits, without cookies. This page explains what stays where.
 
 ## Your pictures
 
@@ -34,7 +34,19 @@ choose; the web app hands it to your browser as a download.
 
 The app has no accounts and no sign-in. It contains no analytics, advertising or tracking
 code, sets no cookies, and makes no network requests of its own, except the update check
-below. This website loads no fonts, scripts or images from other sites.
+below. This applies to the desktop app and to the web app.
+
+## Visit counts on this website
+
+The pages of this website (not the web app) count visits with
+[GoatCounter](https://www.goatcounter.com), a small open-source statistics service, to
+show how many people find the project. It sets no cookies and does not follow you across
+sites. For each page view it receives the page address, the page you came from, your
+browser and screen size, and the country worked out from your IP address; your IP
+address itself is not stored. See
+[GoatCounter's privacy policy](https://www.goatcounter.com/help/privacy).
+Apart from GoatCounter's script, this website loads no fonts, scripts or images from
+other sites.
 
 ## Checking for a newer version
 
