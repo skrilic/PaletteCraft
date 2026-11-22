@@ -139,7 +139,7 @@ python3 -m http.server -d target/web 8080     # serve it locally
 
 - Model and UI constants are documented in `app/MECHANICS.md` and `app/mechanics.json`
   with a source (request or estimated). When you change a constant, update both files.
-- Use British "colour" in code and UI text (the crate name keeps `color`).
+- Use British "colour" in code and UI text.
 - Keep the build warning-free, including the vendored miniquad.
 
 ## Vendored miniquad
