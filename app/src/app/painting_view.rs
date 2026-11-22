@@ -69,7 +69,7 @@ impl App {
             }
             let menu = Rect::new(x + ow + 4.0, y, 32.0, row_h);
             if let Some(i) = ui.menu_button("open_recent", menu, Rect::new(x, y, ow + 36.0, row_h), || self.recent_menu_items()) {
-                self.recent_menu_pick(i);
+                self.recent_menu_pick(ui, i);
             }
             let rest = bw - ow - 42.0;
             let sx = menu.x + menu.w + 6.0;
@@ -110,7 +110,7 @@ impl App {
         }
         let menu = Rect::new(x + bw - 32.0, y, 32.0, 32.0);
         if let Some(i) = ui.menu_button("open_recent", menu, Rect::new(x, y, bw, 32.0), || self.recent_menu_items()) {
-            self.recent_menu_pick(i);
+            self.recent_menu_pick(ui, i);
         }
         ui.tooltip("open_recent_tip", menu, || vec![("Recently opened pictures".to_string(), TEXT)]);
         y += 38.0;

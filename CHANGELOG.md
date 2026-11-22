@@ -3,6 +3,13 @@
 What changed in each version of PaletteCraft (called Painting Colour Assistant up to
 version 0.3.2). The newest version is at the top.
 
+## Unreleased
+
+- **Remove one picture from the recent list.** Each picture in the list beside
+  *Open picture...* has a × that removes it, with its saved settings; the list stays open,
+  so you can remove several. In the web app this also deletes its copy in the browser.
+  *Clear recent list* still removes all of them.
+
 ## 0.4.0 – 21 November 2026
 
 - **New name: PaletteCraft.** The app, its downloads and its website have a new name and

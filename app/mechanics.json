@@ -16,7 +16,7 @@
     {
       "name": "recently opened",
       "group": "controls",
-      "value": "arrow button beside Open picture: recent pictures newest first, missing ones marked, Clear recent list",
+      "value": "arrow button beside Open picture: recent pictures newest first, missing ones marked, a × on each removes it and its settings (menu stays open), Clear recent list",
       "source": "request"
     },
     {

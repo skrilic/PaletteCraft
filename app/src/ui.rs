@@ -60,9 +60,23 @@ pub struct Popup {
     pub id: String,
     pub anchor: Rect,
     pub items: Vec<String>,
+    /// The first `removable` items have a × at the right that removes them (see `Pick`).
+    pub removable: usize,
     /// Width that fits the items (at least the anchor's).
     pub w: f32,
 }
+
+/// What was done with a popup item.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Pick {
+    /// The item was chosen; the popup closes.
+    Item(usize),
+    /// Its × was tapped; the popup stays open (refresh it with `Ui::set_popup_items`).
+    Remove(usize),
+}
+
+/// Width of the × area at the right of a removable popup item.
+const REMOVE_W: f32 = 34.0;
 
 /// Help box shown while the mouse is over `anchor`; drawn on top of everything in `end()`.
 struct Tooltip {
@@ -81,7 +95,7 @@ pub struct Ui {
     pub hud: HashSet<String>,
     pub prev_hud: HashSet<String>,
     popup: Option<Popup>,
-    popup_result: Option<(String, usize)>,
+    popup_result: Option<(String, Pick)>,
     tooltip: Option<Tooltip>,
     swallow: bool,
     block: Option<Rect>,
@@ -173,13 +187,26 @@ impl Ui {
             for (i, item) in p.items.iter().enumerate() {
                 let ir = Rect::new(r.x, r.y + 4.0 + i as f32 * 28.0, r.w, 28.0);
                 self.rects.insert(format!("{}#{}", p.id, i), ir);
+                let removable = i < p.removable;
+                let xr = Rect::new(ir.x + ir.w - REMOVE_W, ir.y, REMOVE_W, ir.h);
                 if ir.contains(self.input.mouse) {
                     draw_rectangle(ir.x + 2.0, ir.y, ir.w - 4.0, ir.h, PANEL3);
                     if self.tap {
-                        chosen = Some(i);
+                        chosen = Some(if removable && xr.contains(self.input.mouse) { Pick::Remove(i) } else { Pick::Item(i) });
                     }
                 }
-                let max_w = ir.w - 20.0;
+                if removable {
+                    self.rects.insert(format!("{}#{}:remove", p.id, i), xr);
+                    let over = xr.contains(self.input.mouse);
+                    let (cx, cy) = (xr.x + xr.w / 2.0, xr.y + xr.h / 2.0);
+                    if over {
+                        draw_circle(cx, cy, 10.0, PANEL2);
+                    }
+                    let c = if over { TEXT } else { MUTED };
+                    draw_line(cx - 4.0, cy - 4.0, cx + 4.0, cy + 4.0, 1.5, c);
+                    draw_line(cx - 4.0, cy + 4.0, cx + 4.0, cy - 4.0, 1.5, c);
+                }
+                let max_w = ir.w - 20.0 - if removable { REMOVE_W - 6.0 } else { 0.0 };
                 match item.split_once('\t') {
                     Some((main, note)) => {
                         let mw = self.measure(main, 15.0).min(max_w);
@@ -192,10 +219,13 @@ impl Ui {
                 }
             }
             if self.tap {
-                if let Some(i) = chosen {
-                    self.popup_result = Some((p.id.clone(), i));
+                let keep_open = matches!(chosen, Some(Pick::Remove(_)));
+                if let Some(pick) = chosen {
+                    self.popup_result = Some((p.id.clone(), pick));
                 }
-                self.popup = None;
+                if !keep_open {
+                    self.popup = None;
+                }
             }
         }
         if let Some(t) = &self.tooltip {
@@ -586,12 +616,16 @@ impl Ui {
         rrect_lines(r, 5.0, BORDER);
         self.text_fit(label, r.x + 10.0, r.y + r.h / 2.0 + 5.0, 15.0, TEXT, r.w - 34.0);
         down_arrow(r.x + r.w - 16.0, r.y + r.h / 2.0);
-        self.popup_on_click(id, r, r, || items.to_vec())
+        match self.popup_on_click(id, r, r, || (items.to_vec(), 0)) {
+            Some(Pick::Item(i)) => Some(i),
+            _ => None,
+        }
     }
 
-    /// Small arrow button that opens a menu under `anchor`; returns the picked index once chosen.
-    /// `items` is only built when the menu opens.
-    pub fn menu_button(&mut self, id: &str, r: Rect, anchor: Rect, items: impl FnOnce() -> Vec<String>) -> Option<usize> {
+    /// Small arrow button that opens a menu under `anchor`; returns what was done with an
+    /// item. `items` (the items, and how many of the first ones can be removed) is only
+    /// built when the menu opens.
+    pub fn menu_button(&mut self, id: &str, r: Rect, anchor: Rect, items: impl FnOnce() -> (Vec<String>, usize)) -> Option<Pick> {
         self.mark(id, r);
         let open = self.popup.as_ref().is_some_and(|p| p.id == id);
         rrect(r, 5.0, if self.hovered(r) || open { PANEL3 } else { PANEL2 });
@@ -599,10 +633,18 @@ impl Ui {
         self.popup_on_click(id, r, anchor, items)
     }
 
-    /// Opens the popup `id` when `r` is clicked; returns the item picked from it, once.
-    fn popup_on_click(&mut self, id: &str, r: Rect, anchor: Rect, items: impl FnOnce() -> Vec<String>) -> Option<usize> {
+    /// Replaces the items of the open popup `id` (after one was removed), keeping it open.
+    pub fn set_popup_items(&mut self, id: &str, items: Vec<String>, removable: usize) {
+        if let Some(p) = self.popup.as_mut().filter(|p| p.id == id && !items.is_empty()) {
+            p.items = items;
+            p.removable = removable;
+        }
+    }
+
+    /// Opens the popup `id` when `r` is clicked; returns what was done with an item, once.
+    fn popup_on_click(&mut self, id: &str, r: Rect, anchor: Rect, items: impl FnOnce() -> (Vec<String>, usize)) -> Option<Pick> {
         if self.clicked(r) {
-            let items = items();
+            let (items, removable) = items();
             if !items.is_empty() {
                 let widest = items
                     .iter()
@@ -611,8 +653,9 @@ impl Ui {
                         None => self.measure(s, 15.0),
                     })
                     .fold(0.0, f32::max);
+                let widest = widest + if removable > 0 { REMOVE_W - 6.0 } else { 0.0 };
                 let w = (widest + 24.0).clamp(anchor.w.max(180.0), 520.0_f32.max(anchor.w)).min(screen_width() - 8.0);
-                self.popup = Some(Popup { id: id.to_string(), anchor, items, w });
+                self.popup = Some(Popup { id: id.to_string(), anchor, items, removable, w });
                 // Do not let this same tap close the popup again in end().
                 self.swallow = true;
                 self.tap = false;

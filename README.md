@@ -30,7 +30,8 @@ for every colour, made from the paints in your own palettes.
 - **Recently opened** – the arrow beside *Open picture...* lists the last 10 pictures,
   so you can go back to an earlier painting in one click. Each picture remembers its own
   settings (crop, views, levels, overlay, paint type and palette, paints per mix, clicked
-  spot), which come back whenever you open it again.
+  spot), which come back whenever you open it again. The × beside a picture removes it
+  from the list, with its settings.
 - **Mixing recipes** – every colour level gets a recipe such as
   *"4 Cobalt Blue + 2 Crimson + 1 Yellow Deep, water: like coffee"* with a match rating
   (excellent / good / close / rough, by colour difference dE); hover the rating for an

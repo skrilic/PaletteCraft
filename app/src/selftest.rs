@@ -389,6 +389,22 @@ impl SelfTest {
                 ),
             );
         })));
+
+        // The × beside a picture in the recent menu removes it; the menu stays open.
+        q.push_back(Click("open_recent"));
+        q.push_back(Wait(2));
+        q.push_back(Click("open_recent#0:remove"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let ok = app.recent.pictures.is_empty()
+                && app.picture_path.is_none()
+                && ui.rects.contains_key("open_recent#0")
+                && !ui.rects.contains_key("open_recent#0:remove")
+                && !ui.rects.contains_key("open_recent#1");
+            res(r, "recent_remove", ok, "the × removed the picture from the recent list and the menu stayed open, now empty".into());
+        })));
+        q.push_back(Click("view_original"));
+        q.push_back(Wait(2));
         SelfTest { queue: q, mouse: vec2(5.0, 5.0), pending: VecDeque::new(), results: Vec::new(), frames: 0 }
     }
 

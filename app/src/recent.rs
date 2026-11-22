@@ -90,6 +90,11 @@ impl Recent {
         }
     }
 
+    /// Forgets the picture shown at `i` in the menu, with its settings; returns its key.
+    pub fn remove(&mut self, i: usize) -> Option<PathBuf> {
+        (i < self.shown().len()).then(|| self.pictures.remove(i).path)
+    }
+
     /// Forgets all pictures and their settings.
     pub fn clear(&mut self) {
         self.pictures.clear();
@@ -194,6 +199,23 @@ mod tests {
         let back: Recent = serde_json::from_str(&serde_json::to_string(&r).unwrap()).unwrap();
         assert_eq!(back.settings(&key), Some(&settings()));
         assert_eq!(back.settings(&pic(2)), None);
+    }
+
+    #[test]
+    fn removing_one_forgets_it_and_its_settings() {
+        let mut r = Recent::default();
+        for i in 0..(RECENT_MAX + 1) {
+            r.add(&pic(i));
+        }
+        let key = r.pictures[2].path.clone();
+        assert!(r.set_settings(&key, settings()));
+        assert_eq!(r.remove(2), Some(key.clone()));
+        assert_eq!(r.settings(&key), None);
+        assert!(r.pictures.iter().all(|p| p.path != key));
+        // the oldest picture comes back into the menu
+        assert_eq!(r.shown().len(), RECENT_MAX);
+        assert_eq!(r.shown().last().map(|p| p.path.clone()), Some(pic(0)));
+        assert_eq!(r.remove(RECENT_MAX), None, "only pictures shown in the menu");
     }
 
     #[test]

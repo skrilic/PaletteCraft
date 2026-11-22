@@ -99,6 +99,11 @@
       "detail": "reopened the picture with its own settings: Value levels view, 3 value levels, Grid overlay, crop Some((60, 40, 300, 240)), clicked spot restored",
       "passed": true,
       "step": "settings_restored"
+    },
+    {
+      "detail": "the × removed the picture from the recent list and the menu stayed open, now empty",
+      "passed": true,
+      "step": "recent_remove"
     }
   ],
   "version": 1

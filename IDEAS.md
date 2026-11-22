@@ -3,15 +3,9 @@
 Possible future features, not yet triaged or planned. Each entry says what the app does
 today and what is still open for triage.
 
-## 1. Remove a single picture from the recent list
+## 1. Remove a single picture from the recent list – done
 
-Today the recent list (the arrow beside *Open picture...*) can only be cleared as a whole
-(*Clear recent list*). Proposed: remove one entry, together with its saved settings.
-
-Open for triage:
-- How to remove it: an × on each row, or swipe/long press on touch screens.
-- In the web app, also delete the picture's copy from IndexedDB (`pc_pictures_keep`
-  already deletes copies that are no longer listed).
+A × on each row of the recent menu removes the picture and its settings (see CHANGELOG).
 
 ## 2. Export and import palettes and default settings
 

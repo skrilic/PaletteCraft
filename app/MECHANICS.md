@@ -11,7 +11,7 @@ in `mechanics.json`.
 | Screens | 1 Palettes, 2 Painting (tabs in the top bar) | request: "artist creates palettes at the beginning" |
 | First start | opens on Palettes; later starts open on Painting | estimated |
 | Open a picture | "Open picture..." file dialog, drop a file on the window, or pass a path on the command line | request |
-| Recently opened | arrow button beside "Open picture..." lists recent pictures, newest first (file name and last two folders, "not found" if missing), then "Clear recent list"; every picture opened from a file is added | request |
+| Recently opened | arrow button beside "Open picture..." lists recent pictures, newest first (file name and last two folders, "not found" if missing), each with a × that removes it and its settings (the menu stays open), then "Clear recent list"; every picture opened from a file is added | request |
 | Recent list length | 10 pictures in the menu; settings kept for the last 100 pictures | estimated |
 | Settings per picture | crop, view, value levels, colour levels, contour detail, lines on top, overlay (kind, grid cells, diagonals, mirroring, line colour and strength), paint type, palette (by name; first palette of that paint type if it is gone), paints per mix, lightening, clicked spot; restored whenever that picture is opened again from a file. New pictures start with the current settings and no crop | request |
 | Settings saved | after every finished change (no mouse button held) and when another picture is opened; "Clear recent list" forgets the settings too | estimated |

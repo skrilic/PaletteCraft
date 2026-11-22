@@ -11,7 +11,7 @@ use crate::imgproc::{self, Analysis, ColourLevels, ValueLevels};
 use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, Mixer, Recipe, match_label};
 use crate::palette::{self, Medium, Palette, Store, Transparency};
 use crate::recent::{self, PictureSettings, Recent};
-use crate::ui::{self, BAD, BG, BORDER, GOOD, MUTED, PANEL, TEXT, Ui, WARN, col};
+use crate::ui::{self, BAD, BG, BORDER, GOOD, MUTED, PANEL, Pick, TEXT, Ui, WARN, col};
 use image::RgbImage;
 use macroquad::prelude::*;
 
@@ -395,17 +395,23 @@ impl App {
         self.save_recent();
     }
 
-    /// Menu of recently opened pictures, then "Clear recent list".
-    fn recent_menu_items(&self) -> Vec<String> {
+    /// Menu of recently opened pictures (each with a × that removes it), then "Clear recent
+    /// list"; with how many of the items can be removed.
+    fn recent_menu_items(&self) -> (Vec<String>, usize) {
         if self.recent.pictures.is_empty() {
-            return vec!["No pictures opened yet".into()];
+            return (vec!["No pictures opened yet".into()], 0);
         }
         let mut items: Vec<String> = self.recent.shown().iter().map(|p| recent::menu_label(&p.path)).collect();
+        let removable = items.len();
         items.push("Clear recent list".into());
-        items
+        (items, removable)
     }
 
-    fn recent_menu_pick(&mut self, i: usize) {
+    fn recent_menu_pick(&mut self, ui: &mut Ui, pick: Pick) {
+        let i = match pick {
+            Pick::Item(i) => i,
+            Pick::Remove(i) => return self.remove_recent(ui, i),
+        };
         let shown = self.recent.shown().len();
         if let Some(path) = self.recent.shown().get(i).map(|p| p.path.clone()) {
             // the web app's copy arrives a few frames later, like a chosen picture
@@ -427,6 +433,22 @@ impl App {
             crate::web::keep_pictures(&[]);
             self.say("Recent list and saved picture settings cleared");
         }
+    }
+
+    /// Removes one picture (and its settings) from the recent list; the menu stays open.
+    fn remove_recent(&mut self, ui: &mut Ui, i: usize) {
+        let Some(key) = self.recent.remove(i) else { return };
+        // the open picture is no longer in the list, so its settings are no longer kept
+        if self.picture_path.as_deref() == Some(key.as_path()) {
+            self.picture_path = None;
+        }
+        self.save_recent();
+        #[cfg(target_arch = "wasm32")]
+        crate::web::keep_pictures(&self.recent.shown_keys());
+        let (items, removable) = self.recent_menu_items();
+        ui.set_popup_items("open_recent", items, removable);
+        let name = key.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        self.say(format!("Removed {name} from the recent list"));
     }
 
     /// Settings of the open picture, as kept in the recent list.
