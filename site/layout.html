@@ -45,7 +45,20 @@
         </p>
     </footer>
     <!-- Visit counts with GoatCounter (no cookies, no personal data); see privacy.html.
-         count.js skips localhost, so local builds are not counted. -->
-    <script data-goatcounter="https://palettecraft.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+         Sent from here rather than with GoatCounter's count.js from gc.zgo.at, which many
+         ad and DNS blockers block. Local builds and automated browsers are not counted. -->
+    <script>
+        (() => {
+            if (location.protocol !== "https:" || navigator.webdriver) return;
+            const q = new URLSearchParams({
+                p: location.pathname,
+                t: document.title,
+                r: document.referrer,
+                s: [screen.width, screen.height, devicePixelRatio].join(","),
+                rnd: Math.random().toString(36).slice(2),
+            });
+            new Image().src = "https://palettecraft.goatcounter.com/count?" + q;
+        })();
+    </script>
 </body>
 </html>

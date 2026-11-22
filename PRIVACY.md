@@ -45,8 +45,7 @@ sites. For each page view it receives the page address, the page you came from, 
 browser and screen size, and the country worked out from your IP address; your IP
 address itself is not stored. See
 [GoatCounter's privacy policy](https://www.goatcounter.com/help/privacy).
-Apart from GoatCounter's script, this website loads no fonts, scripts or images from
-other sites.
+This website loads no fonts, scripts or images from other sites.
 
 ## Checking for a newer version
 
