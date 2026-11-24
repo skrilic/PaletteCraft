@@ -8,7 +8,7 @@ mod update_view;
 use crate::colour::{srgb8_to_lab, to_hex};
 use crate::grid::{Overlay, OverlaySettings};
 use crate::imgproc::{self, Analysis, ColourLevels, ValueLevels};
-use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, Mixer, Recipe, match_label};
+use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, MixModel, Mixer, Recipe, match_label};
 use crate::palette::{self, Medium, Palette, Store, Transparency};
 use crate::recent::{self, PictureSettings, Recent};
 use crate::ui::{self, BAD, BG, BORDER, GOOD, MUTED, PANEL, Pick, TEXT, Ui, WARN, col};
@@ -147,6 +147,8 @@ pub struct App {
     pub recipes: Vec<Option<Recipe>>,
     pub max_paints: i32,
     pub allow_lighten: bool,
+    /// Spectral or RGB Kubelka-Munk.
+    pub mix_model: MixModel,
     pub picked: Option<Picked>,
     recipe_scroll: usize,
 
@@ -221,6 +223,7 @@ impl App {
             recipes: Vec::new(),
             max_paints: 3,
             allow_lighten: true,
+            mix_model: MixModel::Spectral,
             picked: None,
             recipe_scroll: 0,
             status: String::new(),
@@ -466,6 +469,7 @@ impl App {
             palette: self.current_palette().map(|p| p.name.clone()).unwrap_or_default(),
             max_paints: self.max_paints,
             allow_lighten: self.allow_lighten,
+            mix_model: self.mix_model,
             picked: self.picked.as_ref().map(|p| [p.pos.x, p.pos.y]),
         })
     }
@@ -500,6 +504,7 @@ impl App {
         self.overlay.opacity = self.overlay.opacity.clamp(0.15, 1.0);
         self.max_paints = s.max_paints.clamp(1, 3);
         self.allow_lighten = s.allow_lighten;
+        self.mix_model = s.mix_model;
         self.palette_idx = self.store.palettes.iter().position(|p| p.medium == s.medium && p.name == s.palette);
         self.select_medium(s.medium);
         self.image_changed();
@@ -547,7 +552,7 @@ impl App {
     pub fn update_derived(&mut self) {
         if self.mix_dirty {
             self.mix_dirty = false;
-            self.mixer = self.current_palette().map(Mixer::new);
+            self.mixer = self.current_palette().map(|p| Mixer::new(p, self.mix_model));
             self.recipes.clear();
             if let (Some(p), Some(m)) = (&mut self.picked, &self.mixer) {
                 p.recipe = m.find(srgb8_to_lab(p.srgb), self.max_paints as usize, self.allow_lighten);

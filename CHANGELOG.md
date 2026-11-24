@@ -5,6 +5,13 @@ version 0.3.2). The newest version is at the top.
 
 ## Unreleased
 
+- **Spectral paint mixing.** Recipes and the mixing chart now mix paints wavelength by
+  wavelength (spectral Kubelka-Munk) instead of only by red, green and blue, which comes
+  closer to real paint: complementary colours neutralise to grey, a red with a blue leans
+  violet, diluted greens stay green. Recipes may change. The *Mixing model* switch beside
+  *Paints per mix* goes back to the earlier RGB mixing; each picture remembers its choice,
+  and the PDF brochure names the model used.
+
 - **Remove one picture from the recent list.** Each picture in the list beside
   *Open picture...* has a × that removes it, with its saved settings; the list stays open,
   so you can remove several. In the web app this also deletes its copy in the browser.

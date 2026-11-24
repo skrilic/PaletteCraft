@@ -266,8 +266,12 @@ impl App {
         if n == 0 {
             return;
         }
-        let m = Mixer::new(pal);
-        ui.header("MIXING CHART  (1 : 1 mixes, Kubelka-Munk)", r.x, r.y);
+        let m = Mixer::new(pal, self.mix_model);
+        let head = match self.mix_model {
+            MixModel::Spectral => "MIXING CHART  (1 : 1 mixes, spectral Kubelka-Munk)",
+            MixModel::Rgb => "MIXING CHART  (1 : 1 mixes, RGB Kubelka-Munk)",
+        };
+        ui.header(head, r.x, r.y);
         ui.hud("mixing_chart");
         let water = pal.medium.uses_water();
         let tint_steps: Vec<Lighten> = if water {

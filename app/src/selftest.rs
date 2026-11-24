@@ -3,7 +3,7 @@
 
 use crate::app::{App, Screen, View};
 use crate::grid::Overlay;
-use crate::km::Lighten;
+use crate::km::{Lighten, MixModel};
 use crate::palette::{Medium, Transparency};
 use crate::recent::PictureSettings;
 use crate::ui::{Input, Ui};
@@ -126,6 +126,48 @@ impl SelfTest {
                     res(r, "mixing", (100.0..200.0).contains(&h), format!("Cobalt Blue + Lemon Yellow mix to {:?}, hue {:.0} degrees (green)", mix, h));
                 }
             }
+        })));
+
+        // Mixing model: recipes are spectral by default; switch to RGB and back.
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let model = app.mixer.as_ref().map(|m| m.model);
+            res(r, "spectral_default", model == Some(MixModel::Spectral), format!("recipes are worked out with {:?} Kubelka-Munk", model));
+        })));
+        q.push_back(Hover("mix_model_tip"));
+        q.push_back(Wait(1));
+        q.push_back(Check(Box::new(|_app, ui, r| {
+            let tip = ui.tooltip_text().unwrap_or_default();
+            let ok = tip.contains("Spectral:") && tip.contains("31 wavelengths") && tip.contains("RGB:");
+            res(r, "mix_model_tooltip", ok, format!("hovering the mixing model explains it: \"{}\"", tip.lines().nth(1).unwrap_or("no tooltip")));
+        })));
+        q.push_back(Click("mix_model_1"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let ok = app.mix_model == MixModel::Rgb && app.mixer.as_ref().is_some_and(|m| m.model == MixModel::Rgb) && app.recipes_done();
+            let mean = app.recipes.iter().flatten().map(|rc| rc.de).sum::<f32>() / app.recipes.len().max(1) as f32;
+            res(r, "mix_model_rgb", ok, format!("RGB model chosen: {} recipes worked out again, mean dE {:.1}", app.recipes.len(), mean));
+        })));
+        q.push_back(Click("mix_model_0"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let mean = app.recipes.iter().flatten().map(|rc| rc.de).sum::<f32>() / app.recipes.len().max(1) as f32;
+            // Spectral mixing neutralises complementaries: Crimson + Phthalo Green is a grey.
+            let mut detail = format!("spectral model chosen again: {} recipes, mean dE {:.1}", app.recipes.len(), mean);
+            let mut ok = app.mixer.as_ref().is_some_and(|m| m.model == MixModel::Spectral) && app.recipes_done();
+            if let (Some(m), Some(p)) = (&app.mixer, app.current_palette()) {
+                let a = p.paints.iter().position(|x| x.name == "Crimson");
+                let b = p.paints.iter().position(|x| x.name == "Phthalo Green");
+                if let (Some(a), Some(b)) = (a, b) {
+                    let mix = m.mix_srgb(&[(a, 1), (b, 1)], Lighten::None);
+                    let lab = crate::colour::srgb8_to_lab(mix);
+                    let chroma = (lab[1] * lab[1] + lab[2] * lab[2]).sqrt();
+                    ok &= chroma < 6.0;
+                    detail += &format!("; Crimson + Phthalo Green mix to {mix:?}, a near-neutral grey (chroma {chroma:.1})");
+                }
+            }
+            res(r, "mix_model_spectral", ok, detail);
         })));
 
         // Pick a spot on the original picture.

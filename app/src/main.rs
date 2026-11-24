@@ -14,6 +14,7 @@ mod palette;
 mod pdf;
 mod recent;
 mod selftest;
+mod spectral;
 mod storage;
 mod ui;
 mod update;

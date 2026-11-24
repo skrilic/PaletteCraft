@@ -87,9 +87,15 @@ python3 -m http.server -d target/web 8080     # serve it locally
   1400 x 880 only, so it does not cover the compact layout.
 - `selftest.rs` – queue of `Action`s (click, drag, type, wait, check) producing synthetic
   `Input` per frame; checks read `App` state directly.
-- `km.rs` – two-constant Kubelka-Munk per linear RGB channel. Watercolor = film over paper
+- `km.rs` – two-constant Kubelka-Munk per channel: `MixModel::Spectral` (default, the
+  `spectral::BANDS` wavelength bands) or `MixModel::Rgb` (linear RGB); `Mixer::new(palette,
+  model)`. Watercolor = film over paper
   (`PAPER`), lightened by `WATER_LOADS`; acrylic/oil = `r_inf`, lightened with white
   (`WHITE_PARTS`). Recipe search is time-sliced (`RECIPE_BUDGET_MS` per frame).
+  The model is `App::mix_model`, kept in `PictureSettings` (`#[serde(default)]`).
+- `spectral.rs` – sRGB → smoothest reflectance curve (Burns' LHTSS, Newton, cached per
+  colour), curve → linear sRGB (CIE 1931 multi-lobe fit, 6504 K black body, rows scaled
+  so a white reflector is white). Unit tests round-trip the whole sRGB cube.
 - `imgproc.rs` – working copy capped at `WORK_MAX_SIDE`; crops apply to the full original.
   Colour levels = seeded k-means++ in Lab (deterministic).
 - `colour.rs` – sRGB/linear/Lab, CIE76 ΔE. `palette.rs` – `Paint`, `Palette`, `Store`,

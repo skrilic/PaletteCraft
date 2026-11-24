@@ -220,6 +220,58 @@
       "source": "request"
     },
     {
+      "name": "mixing model choices",
+      "group": "mixing",
+      "value": "Spectral, RGB",
+      "source": "request: \"Spectral Kubelka-Munk for more accurate mixes\""
+    },
+    {
+      "name": "mixing model default",
+      "group": "mixing",
+      "value": "Spectral",
+      "source": "request: \"Spectral Kubelka-Munk for more accurate mixes\""
+    },
+    {
+      "name": "spectral bands",
+      "group": "mixing",
+      "value": 31,
+      "unit": "bands",
+      "estimated": true
+    },
+    {
+      "name": "spectral first band",
+      "group": "mixing",
+      "value": 400,
+      "unit": "nm",
+      "estimated": true
+    },
+    {
+      "name": "spectral band step",
+      "group": "mixing",
+      "value": 10,
+      "unit": "nm",
+      "estimated": true
+    },
+    {
+      "name": "spectral reflectance reconstruction",
+      "group": "mixing",
+      "value": "smoothest curve between 0 and 1 with the paint's masstone colour (least hyperbolic tangent slope squared, Newton's method)",
+      "source": "S. A. Burns, Numerical methods for smoothest reflectance reconstruction (2020)"
+    },
+    {
+      "name": "spectral observer",
+      "group": "mixing",
+      "value": "CIE 1931 2 degree, multi-lobe Gaussian fit",
+      "source": "Wyman, Sloan and Shirley, Simple analytic approximations to the CIE XYZ colour matching functions (2013)"
+    },
+    {
+      "name": "spectral illuminant",
+      "group": "mixing",
+      "value": 6504,
+      "unit": "K black body, scaled so a white reflector is sRGB white",
+      "estimated": true
+    },
+    {
       "name": "scattering transparent",
       "group": "mixing",
       "value": 0.12,

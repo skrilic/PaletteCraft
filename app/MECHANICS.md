@@ -13,7 +13,7 @@ in `mechanics.json`.
 | Open a picture | "Open picture..." file dialog, drop a file on the window, or pass a path on the command line | request |
 | Recently opened | arrow button beside "Open picture..." lists recent pictures, newest first (file name and last two folders, "not found" if missing), each with a × that removes it and its settings (the menu stays open), then "Clear recent list"; every picture opened from a file is added | request |
 | Recent list length | 10 pictures in the menu; settings kept for the last 100 pictures | estimated |
-| Settings per picture | crop, view, value levels, colour levels, contour detail, lines on top, overlay (kind, grid cells, diagonals, mirroring, line colour and strength), paint type, palette (by name; first palette of that paint type if it is gone), paints per mix, lightening, clicked spot; restored whenever that picture is opened again from a file. New pictures start with the current settings and no crop | request |
+| Settings per picture | crop, view, value levels, colour levels, contour detail, lines on top, overlay (kind, grid cells, diagonals, mirroring, line colour and strength), paint type, palette (by name; first palette of that paint type if it is gone), paints per mix, lightening, mixing model, clicked spot; restored whenever that picture is opened again from a file. New pictures start with the current settings and no crop | request |
 | Settings saved | after every finished change (no mouse button held) and when another picture is opened; "Clear recent list" forgets the settings too | estimated |
 | Recent list saved | JSON next to the palettes (`PaletteCraft/recent.json`); `--screenshot` / `--self-test` never read or write it | estimated |
 | Buttons, list rows, menus | react on release (tap); a press that moves more than 10 px before release is a drag, not a tap (so dragging a list on a touch screen does not press what is under the finger). Sliders and the crop frame react on press | estimated |
@@ -49,16 +49,25 @@ in `mechanics.json`.
 
 ## Kubelka-Munk mixing
 
-Two-constant Kubelka-Munk per RGB channel in linear light. Each paint is described by
-its masstone colour (full strength), its transparency and its tinting strength.
+Two-constant Kubelka-Munk. Each paint is described by its masstone colour (full
+strength), its transparency and its tinting strength. With the **spectral** model (the
+default) every colour becomes a reflectance curve and K and S are worked out and mixed per
+wavelength band; with the **RGB** model the same equations run on the three linear RGB
+channels instead.
 
 | What | Value | Source |
 |---|---|---|
 | Media | Watercolor, Acrylic, Oil | request |
+| Mixing model | Spectral (default) or RGB, "Mixing model" switch under "Paints per mix"; kept per picture, pictures saved before it existed get Spectral; hovering explains the two | request: "Spectral Kubelka-Munk for more accurate mixes" |
+| Spectral bands | 31, from 400 to 700 nm in 10 nm steps | estimated |
+| Reflectance curve of a colour | the smoothest curve between 0 and 1 with exactly that colour (least hyperbolic tangent slope squared, Newton's method); greys are flat. Every sRGB colour has one (unit test over the cube, round trip under 1 dE) | Burns 2020 (method); fit checked by unit test |
+| Observer | CIE 1931 2°, multi-lobe Gaussian fit of the colour matching functions | Wyman, Sloan & Shirley 2013 |
+| Illuminant | black body at 6504 K (close to D65); weights scaled so a perfect white reflector is sRGB white | estimated |
+| Paper, white paint | also turned into curves (paper flat-ish, near-white) | estimated |
 | Scattering S, transparent | 0.12 | estimated |
 | Scattering S, half-transparent | 0.45 | estimated |
 | Scattering S, opaque | 1.6 | estimated |
-| Watercolor model | paint layer of thickness = pigment load over paper; K solved so a full-strength layer shows the masstone | estimated |
+| Watercolor model | paint layer of thickness = pigment load over paper; K solved (per band or channel) so a full-strength layer shows the masstone | estimated |
 | Paper colour | sRGB 247, 244, 236 | estimated |
 | Water steps (pigment load) | 1.0, 0.75, 0.55, 0.40, 0.30, 0.22, 0.16, 0.11, 0.075, 0.05, 0.033, 0.02 | estimated |
 | Water words | >=0.9 full strength, >=0.65 creamy, >=0.45 like milk, >=0.28 like coffee, >=0.15 like tea, >=0.07 light wash, else very pale wash | estimated (common painters' terms) |
@@ -115,7 +124,7 @@ its masstone colour (full strength), its transparency and its tinting strength.
 | Button | "Export PDF..." at the right of the top bar; asks for the file name and folder (system save dialog), adds ".pdf" if missing | request |
 | Default file name | "<picture name> - reference.pdf" | estimated |
 | Page size | A4 portrait (595 x 842 pt), 42 pt margins, footer with picture name, date and page number | estimated |
-| Page 1 | original picture (cropped if a crop is applied) and the settings | request |
+| Page 1 | original picture (cropped if a crop is applied) and the settings, including the mixing model | request |
 | Page 2 | value levels picture with the value scale and percentages, contour drawing at the same size | request |
 | Page 3 | chosen palette: paints, pigment codes, transparency, tinting strength, 1:1 mixing chart and lightening steps | request |
 | Page 4+ | colour levels picture and a recipe for every level, with the chosen paints per mix (1, 2 or 3), plus the clicked spot | request |

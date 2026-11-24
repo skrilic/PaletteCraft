@@ -29,13 +29,18 @@ for every colour, made from the paints in your own palettes.
   with optional diagonals and cell labels.
 - **Recently opened** – the arrow beside *Open picture...* lists the last 10 pictures,
   so you can go back to an earlier painting in one click. Each picture remembers its own
-  settings (crop, views, levels, overlay, paint type and palette, paints per mix, clicked
-  spot), which come back whenever you open it again. The × beside a picture removes it
+  settings (crop, views, levels, overlay, paint type and palette, paints per mix, mixing
+  model, clicked spot), which come back whenever you open it again. The × beside a picture removes it
   from the list, with its settings.
 - **Mixing recipes** – every colour level gets a recipe such as
   *"4 Cobalt Blue + 2 Crimson + 1 Yellow Deep, water: like coffee"* with a match rating
   (excellent / good / close / rough, by colour difference dE); hover the rating for an
   explanation. Click anywhere on the picture to get a recipe for that spot.
+- **Spectral mixing** – by default each paint's colour is turned into a smooth reflectance
+  curve and mixed wavelength by wavelength (spectral Kubelka-Munk, 31 bands from 400 to
+  700 nm), which behaves more like real paint: a red and its complementary green
+  neutralise to grey, a red with a blue leans violet. The *Mixing model* switch goes back
+  to the simpler RGB model for comparison.
 - **Export PDF** – the *Export PDF...* button saves a reference brochure (A4) with the
   original picture, the value study with its percentages, the contour drawing, the chosen
   palette with its mixing chart, and a recipe for every colour level using the chosen

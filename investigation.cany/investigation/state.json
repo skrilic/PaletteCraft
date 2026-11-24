@@ -1,5 +1,5 @@
 {
-  "revision": 8,
+  "revision": 9,
   "brief": {
     "question": "Build a desktop painting colour assistant: open an image, crop it, view a greyscale value study with N levels, a colour-reduced version with N levels, overlay a composition grid (rule of thirds, Fibonacci spiral, square grid), and for each reduced colour compute a Kubelka-Munk mixing recipe from a user-defined pigment palette (watercolor / acrylic / oil, with transparency per paint).",
     "purpose": "Tool for an artist planning a painting; no original program to match, built from the request alone.",
@@ -41,6 +41,6 @@
   ],
   "hypotheses": [],
   "findings": [],
-  "handoff": "Latest turn: added Overlay::Golden (phi grid, lines at 0.382/0.618 with rings at crossings), appended at the END of the Overlay enum because OverlaySettings is serialised in recent.json (recent.rs added by the user since last turn). Button id overlay_golden (+ tooltip id overlay_golden_tip), overlay buttons are now a 3-row 2-column grid (Overlay::ALL order: None, Thirds, Golden, Fibonacci, Grid). Self-test step overlay_golden; 20/20 steps pass. Docs updated: MECHANICS.md, mechanics.json, README.md, CLAUDE.md (grid.rs line). Not committed. Earlier: PDF export (pdf.rs, app/export.rs), contours, value-scale caption.",
-  "updated": "2026-11-19T23:20:00Z"
+  "handoff": "Latest turn: spectral Kubelka-Munk added (person asked \"Does the Spectral Kubelka-Munk... if not please make it possible\"). New src/spectral.rs: sRGB -> smoothest reflectance (Burns LHTSS, Newton, f64, thread_local cache), 31 bands 400-700 nm, CIE 1931 multi-lobe fit, 6504 K Planck illuminant, rows normalised so white=1. km.rs: MixModel {Spectral (default), Rgb}, channel arrays Ch=[f32;31], Mixer::new(palette, model). App::mix_model, PictureSettings.mix_model (#[serde(default)]), UI segmented \"mix_model\" (ids mix_model_0/1) + tooltip \"mix_model_tip\" under Paints per mix; mixing chart header names the model; PDF settings row \"Mixing model\". Self-test 25/25 (new: spectral_default, mix_model_tooltip, mix_model_rgb, mix_model_spectral). Unit tests 17 pass (round trip whole sRGB cube < 1 dE; complementaries neutralise in spectral). Finding: spectral does NOT give more saturated blue+yellow greens than RGB (smooth curves); it fixes red+green -> grey and red+blue -> violet. Docs: MECHANICS.md, mechanics.json, README, CHANGELOG, CLAUDE.md updated. Web build: system cargo is Fedora's (/usr/bin); use PATH=$HOME/.cargo/bin:$PATH for --target wasm32 (warning-free). Not committed.",
+  "updated": "2026-11-24T10:23:48Z"
 }

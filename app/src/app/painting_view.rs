@@ -606,6 +606,30 @@ impl App {
             self.mix_dirty = true;
         }
         y += if narrow { 72.0 } else { 40.0 };
+        // mixing model
+        let label_r = Rect::new(x, y, 100.0, 26.0);
+        ui.text("Mixing model", x, y + 18.0, 14.0, TEXT);
+        let labels: Vec<&str> = MixModel::ALL.iter().map(|m| m.label()).collect();
+        let cur = MixModel::ALL.iter().position(|m| *m == self.mix_model).unwrap_or(0);
+        let seg = Rect::new(x + 104.0, y, 160.0_f32.min(bw - 104.0), 26.0);
+        if let Some(i) = ui.segmented("mix_model", seg, &labels, cur) {
+            if MixModel::ALL[i] != self.mix_model {
+                self.mix_model = MixModel::ALL[i];
+                self.mix_dirty = true;
+            }
+        }
+        let tip_r = Rect::new(label_r.x, label_r.y, seg.x + seg.w - label_r.x, 26.0);
+        ui.tooltip("mix_model_tip", tip_r, || {
+            vec![
+                ("How paint mixtures are worked out (Kubelka-Munk)".to_string(), TEXT),
+                ("Spectral: each paint's colour becomes a smooth reflectance curve".to_string(), MUTED),
+                ("over 31 wavelengths (400-700 nm), mixed wavelength by wavelength:".to_string(), MUTED),
+                ("closer to real paint, e.g. a red and its complementary green".to_string(), MUTED),
+                ("neutralise to grey, and a red with a blue leans violet.".to_string(), MUTED),
+                ("RGB: mixes only red, green and blue; faster, but cruder.".to_string(), MUTED),
+            ]
+        });
+        y += 36.0;
 
         // clicked spot
         draw_line(x, y, x + bw, y, 1.0, BORDER);

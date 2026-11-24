@@ -249,7 +249,7 @@ impl App {
     fn brochure(&self) -> Result<(Vec<u8>, usize), String> {
         let img = self.img.as_ref().ok_or("no picture")?;
         let pal = self.current_palette().ok_or("no palette")?;
-        let mixer = Mixer::new(pal);
+        let mixer = Mixer::new(pal, self.mix_model);
         let values = self.values.as_ref().ok_or("no value levels")?;
         let colours = self.colours.as_ref().ok_or("no colour levels")?;
         let edges = self.contours.as_ref().ok_or("no contours")?;
@@ -312,6 +312,7 @@ impl App {
             ("Colour levels", colours.srgb.len().to_string()),
             ("Paints per mix", format!("up to {k}")),
             ("Lighter colours", lighten),
+            ("Mixing model", self.mix_model.describe().to_string()),
             ("Contour detail", format!("{} of {}", self.contour_detail, imgproc::CONTOUR_DETAIL_MAX)),
         ];
         for (key, val) in rows {
