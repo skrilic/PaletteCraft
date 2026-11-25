@@ -1,8 +1,7 @@
 # Plan
 
-1. [done] Set up the project and the paint-mixing maths
-2. [done] Palette manager: create palettes with named paints, pigment codes and transparency
-3. [done] Image workspace: open, crop, greyscale value levels, colour levels
-4. [done] Composition overlays: rule of thirds, Fibonacci spiral, grid
-5. [done] Mixing recipes for each colour of the picture and for any clicked spot
-6. [done] Build, take a screenshot, run the self-test and fix what fails — rebuild_check: build, screenshot, self-test passed; mechanics behaviour unverifiable
+1. [done] Work out how layered transparent paint looks (glazing maths)
+2. [done] Find the best layer-by-layer recipe for each colour
+3. [done] Add a Mix / Glaze switch and show layered recipes on screen and in the PDF
+4. [done] Test it: automatic run-through, screenshots, checks — 29/29 self-test steps, 22 unit tests, rebuild_check passed (mechanics behaviour unverifiable)
+5. [done] Update the numbers sheet and notes

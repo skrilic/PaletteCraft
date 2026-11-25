@@ -249,7 +249,8 @@ impl App {
     fn brochure(&self) -> Result<(Vec<u8>, usize), String> {
         let img = self.img.as_ref().ok_or("no picture")?;
         let pal = self.current_palette().ok_or("no palette")?;
-        let mixer = Mixer::new(pal, self.mix_model);
+        let mixer = Mixer::new(pal, self.mix_model).with_method(self.method);
+        let glaze = self.method == Method::Glaze;
         let values = self.values.as_ref().ok_or("no value levels")?;
         let colours = self.colours.as_ref().ok_or("no colour levels")?;
         let edges = self.contours.as_ref().ok_or("no contours")?;
@@ -285,7 +286,11 @@ impl App {
         let title = fit(&img.name, 24.0, true, cw);
         p.doc.text(MARGIN, p.y, 24.0, true, INK, &title);
         p.y += 20.0;
-        let mixes = if k == 1 { "single paints".to_string() } else { format!("mixes of up to {k} paints") };
+        let mixes = match (glaze, k) {
+            (true, _) => format!("glazes, up to {k} layers"),
+            (false, 1) => "single paints".to_string(),
+            (false, _) => format!("mixes of up to {k} paints"),
+        };
         let sub = format!("{}  -  palette \"{}\"  -  {}  -  {}", pal.medium.label(), pal.name, mixes, date);
         p.doc.text(MARGIN, p.y, 10.5, false, MUTED, &fit(&sub, 10.5, false, cw));
         p.y += 14.0;
@@ -310,8 +315,9 @@ impl App {
             ("Palette", format!("{} ({} paints)", pal.name, pal.paints.len())),
             ("Value levels", values.lightness.len().to_string()),
             ("Colour levels", colours.srgb.len().to_string()),
-            ("Paints per mix", format!("up to {k}")),
-            ("Lighter colours", lighten),
+            ("Method", self.method.describe().to_string()),
+            if glaze { ("Layers", format!("up to {k} paints, one per layer")) } else { ("Paints per mix", format!("up to {k}")) },
+            (if glaze { "Lighter first layer" } else { "Lighter colours" }, lighten),
             ("Mixing model", self.mix_model.describe().to_string()),
             ("Contour detail", format!("{} of {}", self.contour_detail, imgproc::CONTOUR_DETAIL_MAX)),
         ];
@@ -323,7 +329,8 @@ impl App {
         }
         p.y += 8.0;
         p.ensure(20.0);
-        p.doc.text(MARGIN, p.y, 9.0, false, MUTED, "Inside: value study and contours  -  palette and mixing chart  -  colour mixes for every colour level");
+        let inside = if glaze { "glazing recipes" } else { "colour mixes" };
+        p.doc.text(MARGIN, p.y, 9.0, false, MUTED, &format!("Inside: value study and contours  -  palette and mixing chart  -  {inside} for every colour level"));
 
         // ---- page 2: value study and contours ----
         p.page();
@@ -439,13 +446,28 @@ impl App {
         } else {
             format!(" White is {}.", mixer.white_name)
         };
-        p.heading(
-            "Colour mixes",
-            &format!(
-                "Recipes for the {nc} colour levels of the picture, using {up_to} from \"{}\". Parts are by volume.{light} The mixes are Kubelka-Munk predictions from estimated paint data, so test them on a scrap first. The match rating (dE) is explained after the list.",
-                pal.name
-            ),
-        );
+        if glaze {
+            let (first, thin) = if water {
+                ("a wash of one paint on the paper", "water")
+            } else {
+                ("an opaque layer of one paint with white, or the white ground", "glazing medium")
+            };
+            p.heading(
+                "Glazing recipes",
+                &format!(
+                    "Recipes for the {nc} colour levels of the picture, built up in layers with {up_to} from \"{}\". Each recipe names the layers from the first one up: {first}, then each glaze, one transparent or half-transparent paint thinned with {thin}, painted once the layer below is dry. The second line gives the strength of each layer. The colours are Kubelka-Munk predictions from estimated paint data, so test them on a scrap first. The match rating (dE) is explained after the list.",
+                    pal.name
+                ),
+            );
+        } else {
+            p.heading(
+                "Colour mixes",
+                &format!(
+                    "Recipes for the {nc} colour levels of the picture, using {up_to} from \"{}\". Parts are by volume.{light} The mixes are Kubelka-Munk predictions from estimated paint data, so test them on a scrap first. The match rating (dE) is explained after the list.",
+                    pal.name
+                ),
+            );
+        }
         p.picture(colour_img, iw, ih, cw, 180.0, true);
         p.y += 16.0;
         let nv = values.lightness.len();

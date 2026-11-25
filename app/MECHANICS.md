@@ -84,6 +84,34 @@ channels instead.
 | Match explanation | hovering the match label (e.g. "good  (dE 4.2)") shows a pop-up: what dE means, the four bands with this recipe's band highlighted, and that the mix is a model estimate | request |
 | Recipe search budget | 12 ms per frame (rest continues next frame) | estimated |
 
+## Glazing
+
+With the **Method** switch on *Glaze* (above *Paints per mix*, which then reads *Layers*),
+each colour is built up in transparent layers instead of mixed. A layer is a Kubelka-Munk
+film with its own reflectance R and transmittance T (from the paint's K and S and the
+film's thickness), laid over the layer below with R' = R + T² Rg / (1 − R Rg). Two films of
+one paint stack exactly like one film of the summed thickness (unit test).
+
+| What | Value | Source |
+|---|---|---|
+| Method | Mix (default) or Glaze, switch "Method" in the paints panel; kept per picture, pictures saved before it existed get Mix; hovering explains it | request: "implement glazing method (layering transparent paints)" |
+| First layer, watercolor | one paint as a wash on the paper, at any water step (only full strength when "Lighten first layer" is off) | estimated |
+| First layer, acrylic/oil | the white ground alone, or one paint (any transparency) with the white parts tried (no white when "Lighten first layer" is off) | estimated |
+| Lighten checkbox | reads "Lighten first layer" in Glaze mode: water or white only lighten the first layer; glazes always try every strength | estimated |
+| Glazes | up to 2, each one transparent or half-transparent paint (never opaque paints or the white), each a different paint from the layer below it | estimated |
+| Layers | the paints of all layers count against "Layers" (1 / 2 / 3, default 3); the white ground and white do not count | estimated |
+| Glaze strengths tried | 1.0, 0.55, 0.30, 0.16, 0.075, 0.035 of a full-strength glaze | estimated |
+| Glaze thickness, watercolor | strength x the full-strength wash (the same film as diluted paint: a first wash equals that paint diluted on the palette, unit test) | estimated |
+| Glaze thickness, acrylic/oil | strength x the paint's own full-glaze thickness: the thinnest film that over the white ground lets at most 2% of the light through (T², there and back) in the band it absorbs most, or comes within 2 dE of the masstone, at most 64 K/S thickness units. So "strong" is one vivid glaze and "a veil" only tints the white, for a yellow as for a black (e.g. Ivory Black 0.14, Phthalo Blue 0.58, Hansa Yellow Light 2.6; unit test) | estimated |
+| Glaze words, acrylic/oil | >=0.9 strong, >=0.45 medium, >=0.25 thin, >=0.12 very thin, >=0.06 a veil, else a faint veil | estimated |
+| Glaze words, watercolor | the water words above | estimated |
+| Search | every first layer x every glaze x every second glaze (exhaustive), about 1-6 ms per colour; same score as mixtures (dE + 0.8 per paint after the first) | estimated |
+| Recipe text | "Cobalt Blue, then Crimson, then Lemon Yellow" (first layer up), second line the strength of each layer ("like tea / like milk / light wash"; acrylic/oil "1 paint + 3 white; glazes: thin / a veil", or "no white") | estimated |
+| Accuracy | in the starter palettes glazing usually matches within dE 1-3, often closer than mixing; acrylic/oil glazing is less close where the palette lacks a suitable transparent paint (e.g. greens in Oil 1) | observed (unit-test printout, starter palettes) |
+| Layer chips | small swatches right of each glazing recipe: the colour after each layer; hovering names them | estimated |
+| Palette without transparent paints | Glaze gives single first layers; the switch shows "no transparent paints" | estimated |
+| PDF | cover rows "Method" and "Layers", the recipe page is titled "Glazing recipes" and explains the layer order | estimated |
+
 ## Palettes
 
 | What | Value | Source |

@@ -5,6 +5,16 @@ version 0.3.2). The newest version is at the top.
 
 ## Unreleased
 
+- **Glazing.** A new *Method* switch beside the paints chooses between *Mix* (as before)
+  and *Glaze*: each colour is then reached by painting transparent layers over one
+  another. Watercolor recipes start with a wash of one paint on the paper; acrylic and oil
+  recipes with one paint mixed with white, or the bare white ground. Up to two glazes of
+  transparent or half-transparent paints go on top, for example *"Cobalt Blue, then
+  Crimson, then Lemon Yellow"*, with the strength of each layer (*"like tea / like milk /
+  light wash"*). Small chips beside each recipe show the colour after each layer. *Layers*
+  sets how many paints a recipe may use. Each picture remembers its choice, and the PDF
+  brochure lists the glazing recipes.
+
 - **Spectral paint mixing.** Recipes and the mixing chart now mix paints wavelength by
   wavelength (spectral Kubelka-Munk) instead of only by red, green and blue, which comes
   closer to real paint: complementary colours neutralise to grey, a red with a blue leans

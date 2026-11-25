@@ -7,9 +7,9 @@
   },
   "stack": "Rust + macroquad",
   "status": "ready",
-  "note": "Ready: 3 of 4 checks pass, 23 of 23 claims hold; 1 comparison remains unverified. 2 questions about the original are still open.",
+  "note": "Ready: 3 of 4 checks pass, 23 of 23 claims hold; 1 comparison remains unverified. 3 questions about the original are still open.",
   "created_ms": 1794904323335,
-  "updated_ms": 1795515849970,
+  "updated_ms": 1795558075464,
   "checks": [
     {
       "round": 1,
@@ -648,14 +648,288 @@
       "unknowns": [
         "Mechanics behavior has not been measured against app/mechanics.json."
       ]
+    },
+    {
+      "round": 7,
+      "check": "build",
+      "passed": true,
+      "similarity": null,
+      "note": "Build succeeded.",
+      "artifacts": [],
+      "at_ms": 1795554899966
+    },
+    {
+      "round": 7,
+      "check": "app-screenshot",
+      "passed": true,
+      "similarity": null,
+      "note": "The program starts and draws (1400×880).",
+      "artifacts": [
+        "checks/round-7/screenshot.png"
+      ],
+      "at_ms": 1795554902712
+    },
+    {
+      "round": 7,
+      "check": "game-self-test",
+      "passed": true,
+      "similarity": null,
+      "note": "The self-test plays the core loop: move (dragged a crop frame over the picture: 1200x800 became 720x480 (60% x 60% of the original)), act (10 colour levels, 10 Kubelka-Munk recipes from the palette, mean colour difference dE 2.1), hud (value scale, level counts, palette, clicked-spot recipe, recipe list and rule-of-thirds overlay are drawn).",
+      "artifacts": [
+        "checks/round-7/self-test.json"
+      ],
+      "at_ms": 1795554908078,
+      "claims": [
+        {
+          "title": "In play, the player moves",
+          "passed": true
+        },
+        {
+          "title": "In play, the player's main action works",
+          "passed": true
+        },
+        {
+          "title": "In play, the on-screen information is drawn",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"value_shares\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"values\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mixing\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"spectral_default\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_tooltip\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_rgb\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_spectral\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"pick\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"match_tooltip\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_fibonacci\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_golden\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_grid\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"contours\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"contours_on_top\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"export_pdf\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"palette\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"medium\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"recent_menu\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"open_recent\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"settings_kept\"",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "check": "mechanics",
+      "passed": true,
+      "similarity": null,
+      "note": "app/mechanics.json has 88 values (21 with a source, 68 estimated). The sheet is readable; its behavior is unverified. No runtime measurement was compared with these values. A source literal or a core-loop self-test alone cannot establish that the build uses them.",
+      "artifacts": [],
+      "at_ms": 1795554908085,
+      "unknowns": [
+        "Mechanics behavior has not been measured against app/mechanics.json."
+      ]
+    },
+    {
+      "round": 8,
+      "check": "build",
+      "passed": true,
+      "similarity": null,
+      "note": "Build succeeded.",
+      "artifacts": [],
+      "at_ms": 1795558047623
+    },
+    {
+      "round": 8,
+      "check": "app-screenshot",
+      "passed": true,
+      "similarity": null,
+      "note": "The program starts and draws (1400×880).",
+      "artifacts": [
+        "checks/round-0/screenshot.png"
+      ],
+      "at_ms": 1795558050384
+    },
+    {
+      "round": 8,
+      "check": "game-self-test",
+      "passed": true,
+      "similarity": null,
+      "note": "The self-test plays the core loop: move (dragged a crop frame over the picture: 1200x800 became 720x480 (60% x 60% of the original)), act (10 colour levels, 10 Kubelka-Munk recipes from the palette, mean colour difference dE 2.1), hud (value scale, level counts, palette, clicked-spot recipe, recipe list and rule-of-thirds overlay are drawn).",
+      "artifacts": [
+        "checks/round-0/self-test.json"
+      ],
+      "at_ms": 1795558056518,
+      "claims": [
+        {
+          "title": "In play, the player moves",
+          "passed": true
+        },
+        {
+          "title": "In play, the player's main action works",
+          "passed": true
+        },
+        {
+          "title": "In play, the on-screen information is drawn",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"value_shares\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"values\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mixing\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"spectral_default\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_tooltip\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_rgb\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"mix_model_spectral\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"method_tooltip\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"glaze\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"glaze_off\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"pick\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"match_tooltip\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_fibonacci\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_golden\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"overlay_grid\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"contours\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"contours_on_top\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"export_pdf\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"export_pdf_glaze\"",
+          "passed": true
+        },
+        {
+          "title": "Self-test step \"palette\"",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "check": "mechanics",
+      "passed": true,
+      "similarity": null,
+      "note": "app/mechanics.json has 104 values (23 with a source, 82 estimated). The sheet is readable; its behavior is unverified. No runtime measurement was compared with these values. A source literal or a core-loop self-test alone cannot establish that the build uses them.",
+      "artifacts": [],
+      "at_ms": 1795558056527,
+      "unknowns": [
+        "Mechanics behavior has not been measured against app/mechanics.json."
+      ]
     }
   ],
-  "agent_session": "893a4ddb-2d63-4b6e-88a8-57405950f5b3",
+  "agent_session": "098f948b-70d9-4c23-a38e-afba6f072c6e",
   "agent_session_by": "claude-code",
   "agent_session_deep": false,
   "capture_deep": false,
   "allowed_actions": [],
-  "last_reply": "Now writing the spectral module.Now reworking the mixing code to run per channel (3 RGB channels or 31 spectral bands).I'll make the same changes with the editor instead.Now the tests in the same file, and wiring up the app.Now the app state.Builds cleanly. Running the unit tests.Spectral curves reproduce every colour in the sRGB cube. Two of my new tests failed, so I'll look at the actual numbers before deciding anything.All unit tests pass. Next, a self-test step for the new switch.All 25 self-test steps pass, and on the sample picture the spectral recipes match better on average (colour difference 2.1, against 3.0 with RGB). Now taking screenshots and checking the web build.The computer has two Rust installations; the web part went into the other one. Building with that one.The web build is warning-free too. Now updating the notes: the mechanics sheet, the README, the changelog and the project notes.All checks pass. Updating the open question about mixing accuracy: the \"only RGB\" part is now settled, but the paint colours are still estimates.Spektralni Kubelka-Munk prije nije bio ugrađen: boje su se miješale samo po crvenom, zelenom i plavom kanalu. Sada je ugrađen i zadano se koristi za recepte, tablicu miješanja u paletama i PDF. Aplikacija od boje svake tube izračuna glatku krivulju refleksije kroz 31 valnu duljinu (od 400 do 700 nm) i miješa boje valnu duljinu po valnu duljinu.\n\n**Što se promijenilo za slikara:**\n- Recepti su bliži stvarnoj boji. Grimizna i ftalo zelena sada daju neutralnu sivu, crvena i plava naginju prema ljubičastoj, a razrijeđena ftalo zelena ostaje zelena umjesto da postane neprirodno tirkizna. Stari način je u tim slučajevima griješio.\n- Na probnoj slici recepti su u prosjeku točniji: razlika boja je 2,1 umjesto 3,0. Zato se postojeći recepti mogu promijeniti.\n- Plavo i žuto ne daju zasićeniju zelenu nego prije, nego malo prigušeniju. Tekst pomoći je zato napisan prema tome što se stvarno dogodilo, a ne prema mom očekivanju.\n- Ispod „Paints per mix” je novi prekidač „Mixing model” (Spectral / RGB) s objašnjenjem kad se pokazivač zadrži iznad njega. Tako se možete vratiti na stari način i usporediti. Svaka slika pamti svoj izbor, a PDF navodi koji je način korišten.\n\n**Provjera:** aplikacija se gradi bez upozorenja za računalo i za web. Svih 25 automatskih provjera prolazi, uključujući četiri nove za ovu značajku. Pregledao sam snimke zaslona za široki prikaz, za mobitel i za zaslon s paletama.\n\n**Što je ostalo otvoreno:**\n- Krivulje boja su procjena izvedena iz jedne boje tube, nisu izmjerene. Prave boje mogu imati oštrije krivulje, pa recepte vrijedi usporediti s naslikanim uzorcima.\n- I dalje je otvoreno pitanje o kodu „Crimson PG__” iz vašeg zahtjeva; zasad koristim PR206.\n- Alat Craft Anything ne mjeri u radu programa vrijednosti iz popisa parametara, nego ih samo čita, pa one ostaju neprovjerene.\n\n**Izvan mape `app/`:** prema uputama projekta ažurirao sam README, CHANGELOG i CLAUDE.md. Za web inačicu sam na ovo računalo instalirao Rustovu podršku za WebAssembly. Ništa nije commitano.\n\nSljedeće bi se moglo dodati unos izmjerenih krivulja boja ili tablicu stvarnih spektara za boje iz knjižnice pigmenata. Time bi recepti bili još bliži onome što nastaje na papiru.",
+  "last_reply": "I've read the mixing code and the recipe screens. Next I'll plan the glazing recipes: a first wash or underpainting, with one or two transparent paint layers over it.Adding the glazing maths to the mixing code.I'll make the same changes with the file editor instead.Now the film helper, the layered search and the recipe wording.Now tests that pin the physics, plus a printout so I can check the acrylic and oil glaze thickness.The tests pass. Now I'll connect glazing to the app: the switch, the saved per-picture setting and the PDF.Now the recipe text wrapping, which has to know about the layered form.Now the switch on the Painting screen.Now the PDF brochure: the settings rows and the recipe page.The layer-by-layer colours are worked out but not shown yet. I'll add small chips to each glazing recipe that show the colour after each layer.It builds cleanly. Now I'll add glazing steps to the self-test.All 28 self-test steps pass and all 22 unit tests pass. Next I'll look at the screen in Glaze mode.I'll add a `--glaze` option so screenshots can show Glaze mode.The phone layout reads well now. Next I'll check the acrylic and oil wording and the PDF in Glaze mode.I'll add a self-test step that exports the PDF in Glaze mode too.All 29 steps pass. Let me look at the glazing page of the PDF itself.I can't open PDF pages here, so I'll render page 4 to a picture with macOS's built-in PDF support.The PDF looks good. On the cover, two lines still say \"mixes\" in Glaze mode, so I'll fix them.Both builds are clean and all 29 steps pass. Now the numbers sheet.Now the README, changelog and project notes, as earlier turns did.Now Craft Anything's check, plus an open question to record: how thick a glaze really is.Everything passes. Recording where things stand.Each acrylic and oil paint now has its own glaze thickness. Next I'm making the white ratio clearer: it will read \"1 paint + 3 white\".Every acrylic and oil paint now runs from \"a faint veil\" (pale) to \"strong\" (its full colour), and a veil of black is a light grey. Next: the checkbox label, plus an acrylic check in the self-test.All 30 steps pass. To see acrylic glazing on screen, I'll add a `--medium` option for screenshots.I'll add a test that \"strong\" and \"a veil\" mean the same thing for every acrylic and oil paint.The new test is too strict for pale yellows: a yellow glaze barely changes lightness, it gets more saturated. I'll compare the overall colour difference instead.All 23 unit tests pass. Updating the sheet for the final thickness rule.The oil recipes display correctly; greens are only \"close\" or \"rough\" because the starter oil palette has no transparent yellow or green. Cleaning up and running the final check.There's now a **Mix / Glaze** switch beside the paints. In Glaze mode each colour becomes a layered recipe, such as \"Cobalt Blue, then Crimson, then Lemon Yellow\", with the strength of each layer and small swatches showing the colour after each one. Watercolour recipes start with a wash on the paper; acrylic and oil recipes start with one paint mixed with white, or the bare white ground. Up to two glazes of transparent or half-transparent paints go on top, each picture remembers the choice, and the PDF brochure lists the glazing recipes.\n\nIt builds, and all 30 steps of the automatic run-through pass, including new glazing checks for watercolour, acrylic and the PDF; I looked at the watercolour, oil and phone layouts on screen. With the starter palettes, glazing usually matches within the \"excellent\" to \"good\" range. Greens in the oil palette come out only \"close\" or \"rough\", because that palette has no transparent yellow or green. How thick each glaze strength is (\"a veil\", \"thin\", \"strong\" and so on) is my estimate, not measured from real paint, and the first layer is always a single paint rather than a mix.\n\nI also updated the README, the changelog and the project notes outside the app folder, and added two screenshot options for showing Glaze mode and a chosen paint type. Nothing is committed yet. A good next step would be to paint one transparent colour at a few strengths over white and compare it with the swatches in the app, so the glaze strengths can be set from real paint.",
   "asset_budget_usd": 5.0,
   "generate_assets": false,
   "questions": "ask"

@@ -30,7 +30,7 @@ for every colour, made from the paints in your own palettes.
 - **Recently opened** – the arrow beside *Open picture...* lists the last 10 pictures,
   so you can go back to an earlier painting in one click. Each picture remembers its own
   settings (crop, views, levels, overlay, paint type and palette, paints per mix, mixing
-  model, clicked spot), which come back whenever you open it again. The × beside a picture removes it
+  model, mix or glaze, clicked spot), which come back whenever you open it again. The × beside a picture removes it
   from the list, with its settings.
 - **Mixing recipes** – every colour level gets a recipe such as
   *"4 Cobalt Blue + 2 Crimson + 1 Yellow Deep, water: like coffee"* with a match rating
@@ -41,6 +41,11 @@ for every colour, made from the paints in your own palettes.
   700 nm), which behaves more like real paint: a red and its complementary green
   neutralise to grey, a red with a blue leans violet. The *Mixing model* switch goes back
   to the simpler RGB model for comparison.
+- **Glazing** – the *Method* switch (*Mix* / *Glaze*) turns the recipes into layers
+  instead of mixtures: a first layer (a watercolor wash, or for acrylic and oil one paint
+  with white, or the white ground), then up to two glazes of transparent or
+  half-transparent paints, e.g. *"Cobalt Blue, then Crimson, then Lemon Yellow"* with the
+  strength of each layer. Small chips beside each recipe show the colour after each layer.
 - **Export PDF** – the *Export PDF...* button saves a reference brochure (A4) with the
   original picture, the value study with its percentages, the contour drawing, the chosen
   palette with its mixing chart, and a recipe for every colour level using the chosen

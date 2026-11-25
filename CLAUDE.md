@@ -21,6 +21,7 @@ cargo run -- --screenshot shots/now.png       # render sample landscape to PNG
 cargo run -- --palettes                       # open on the Palettes screen
 cargo run -- <image path>                     # open with a picture
 cargo run -- --screenshot x.png --window 390x780 --pane 2   # compact (phone) layout, pane 0-2
+cargo run -- --glaze --medium oil --screenshot x.png   # glazing recipes, oil paints
 ./web/build.sh                                # web build (wasm32) into target/web/
 python3 -m http.server -d target/web 8080     # serve it locally
 ```
@@ -93,6 +94,14 @@ python3 -m http.server -d target/web 8080     # serve it locally
   (`PAPER`), lightened by `WATER_LOADS`; acrylic/oil = `r_inf`, lightened with white
   (`WHITE_PARTS`). Recipe search is time-sliced (`RECIPE_BUDGET_MS` per frame).
   The model is `App::mix_model`, kept in `PictureSettings` (`#[serde(default)]`).
+  Glazing: `Method::{Mix, Glaze}` (`App::method`, also in `PictureSettings`); build the
+  recipe mixer with `App::recipe_mixer()` (= `Mixer::new(..).with_method(..)`) so every
+  `find` caller uses the same method. `find_glaze` stacks KM films (`film_rt` + `over`)
+  of non-opaque paints on a first layer, at `GLAZE_LOADS` x the paint's `Mixer::glaze_full`
+  (acrylic/oil: thinnest film passing `FULL_GLAZE_T2` in its most absorbed band or within
+  `FULL_GLAZE_DE` of the masstone); `Recipe::glazes`
+  holds them, `Mixer::stages` gives the colour after each layer, and `part_pieces` /
+  `describe_lighten` word layered recipes (ASCII only: the PDF uses Helvetica).
 - `spectral.rs` – sRGB → smoothest reflectance curve (Burns' LHTSS, Newton, cached per
   colour), curve → linear sRGB (CIE 1931 multi-lobe fit, 6504 K black body, rows scaled
   so a white reflector is white). Unit tests round-trip the whole sRGB cube.

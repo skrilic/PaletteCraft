@@ -1,13 +1,13 @@
 {
   "id": "unk_d84de3eac895864f",
-  "revision": 2,
+  "revision": 3,
   "question": "How close are the library pigment colours and Kubelka-Munk constants (scattering by transparency, tinting strength) to real paints? They are estimated, not measured, and mixing is done per RGB channel rather than over the full spectrum.",
   "severity": "medium",
   "domain": "mixing",
   "status": "open",
   "probes": [
-    "Mixing now runs over the spectrum (spectral Kubelka-Munk, 31 bands, default) with RGB as an option; the per-RGB-channel part of this question is settled.",
-    "Still open: the paints' reflectance curves are reconstructed from one masstone colour (smoothest curve), not measured; real pigments can have sharper curves.",
+    "Settled: mixing runs over the spectrum (spectral Kubelka-Munk, 31 bands 400-700 nm) by default, with RGB as an option, so the 'per RGB channel' part of the question no longer applies (commit 6124450).",
+    "Still open: each paint's reflectance curve is rebuilt from one masstone colour (the smoothest curve that matches it), not measured; real pigments can have sharper curves.",
     "Compare recipes with real swatches painted by the artist",
     "Measure masstone and tints of the artist's paints (or enter measured spectra) to replace the estimates"
   ],

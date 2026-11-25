@@ -400,6 +400,109 @@
       "estimated": true
     },
     {
+      "name": "method choices",
+      "group": "glazing",
+      "value": "Mix, Glaze",
+      "source": "request: \"implement glazing method (layering transparent paints)\""
+    },
+    {
+      "name": "method default",
+      "group": "glazing",
+      "value": "Mix",
+      "estimated": true
+    },
+    {
+      "name": "glazes max",
+      "group": "glazing",
+      "value": 2,
+      "unit": "glazes over the first layer",
+      "estimated": true
+    },
+    {
+      "name": "glaze paints",
+      "group": "glazing",
+      "value": "transparent or half-transparent, not white, different from the layer below",
+      "estimated": true
+    },
+    {
+      "name": "layers default",
+      "group": "glazing",
+      "value": 3,
+      "unit": "paints",
+      "estimated": true
+    },
+    {
+      "name": "glaze strengths",
+      "group": "glazing",
+      "value": "1.0, 0.55, 0.30, 0.16, 0.075, 0.035",
+      "unit": "fraction of a full-strength glaze",
+      "estimated": true
+    },
+    {
+      "name": "acrylic/oil full glaze: dE from masstone over white ground",
+      "group": "glazing",
+      "value": 2.0,
+      "unit": "dE (thinnest film within this, per paint)",
+      "estimated": true
+    },
+    {
+      "name": "acrylic/oil full glaze: light passed in the most absorbed band",
+      "group": "glazing",
+      "value": 0.02,
+      "unit": "T^2 (thinnest film reaching this or the dE rule, per paint)",
+      "estimated": true
+    },
+    {
+      "name": "acrylic/oil full glaze thickness max",
+      "group": "glazing",
+      "value": 64,
+      "unit": "K/S thickness units",
+      "estimated": true
+    },
+    {
+      "name": "lighten checkbox in glaze mode",
+      "group": "glazing",
+      "value": "Lighten first layer (water or white only in the first layer)",
+      "estimated": true
+    },
+    {
+      "name": "watercolor full glaze thickness",
+      "group": "glazing",
+      "value": 1.0,
+      "unit": "full-strength wash",
+      "estimated": true
+    },
+    {
+      "name": "acrylic/oil first layer",
+      "group": "glazing",
+      "value": "white ground, or one paint with the white parts tried",
+      "estimated": true
+    },
+    {
+      "name": "watercolor first layer",
+      "group": "glazing",
+      "value": "one paint as a wash at the water steps",
+      "estimated": true
+    },
+    {
+      "name": "glaze words acrylic/oil",
+      "group": "glazing",
+      "value": ">=0.9 strong, >=0.45 medium, >=0.25 thin, >=0.12 very thin, >=0.06 a veil, else a faint veil",
+      "estimated": true
+    },
+    {
+      "name": "layer stacking",
+      "group": "glazing",
+      "value": "R' = R + T^2 Rg / (1 - R Rg) per wavelength band",
+      "source": "Kubelka-Munk layer composition (Kubelka 1954)"
+    },
+    {
+      "name": "glaze search",
+      "group": "glazing",
+      "value": "exhaustive: first layers x glazes x second glazes, scored dE + 0.8 per paint after the first",
+      "estimated": true
+    },
+    {
       "name": "transparency choices",
       "group": "palettes",
       "value": "Transparent, Half-transparent, Opaque",

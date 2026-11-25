@@ -11,6 +11,13 @@
 //!
 //! Transparency sets the scattering power, tinting strength sets how much a
 //! part of the paint counts in a mixture.
+//!
+//! With `Method::Glaze` a colour is built up in layers instead of mixed on the palette: a
+//! first layer (a watercolor wash on paper; for acrylic/oil an opaque underpainting of one
+//! paint and white, or the white ground itself), then up to `GLAZES_MAX` thin films of
+//! single transparent or half-transparent paints, each over the dried layer below. Each film
+//! is a Kubelka-Munk layer with its own reflectance R and transmittance T, stacked on the
+//! layer below with R' = R + T^2 Rg / (1 - R Rg).
 
 use crate::colour::{delta_e, lin_to_lab, lin_to_srgb8, srgb8_to_lin};
 use crate::palette::{Medium, Paint, Palette, Transparency};
@@ -53,6 +60,50 @@ impl MixModel {
         }
     }
 }
+
+/// How a colour is reached.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Method {
+    /// Paints mixed together on the palette (and lightened with water or white).
+    #[default]
+    Mix,
+    /// Transparent layers painted one over another once the layer below is dry.
+    Glaze,
+}
+
+impl Method {
+    pub const ALL: [Method; 2] = [Method::Mix, Method::Glaze];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Method::Mix => "Mix",
+            Method::Glaze => "Glaze",
+        }
+    }
+
+    pub fn describe(self) -> &'static str {
+        match self {
+            Method::Mix => "mixing on the palette",
+            Method::Glaze => "glazing: transparent layers over a first layer",
+        }
+    }
+}
+
+/// Glaze strengths tried: fraction of a full-strength film (watercolor: the pigment load of
+/// a wash, as in `WATER_LOADS`; acrylic/oil: of the paint's full glaze thickness).
+pub const GLAZE_LOADS: [f32; 6] = [1.0, 0.55, 0.3, 0.16, 0.075, 0.035];
+/// Acrylic/oil: a full-strength glaze is the thinnest film of the paint that, over the white
+/// ground, comes within this dE of the paint's masstone (so "strong" means the same for a
+/// pale yellow as for a black).
+pub const FULL_GLAZE_DE: f32 = 2.0;
+/// Acrylic/oil: thickest full-strength glaze considered (K/S thickness units).
+pub const FULL_GLAZE_MAX: f32 = 64.0;
+/// Acrylic/oil: a full-strength glaze is also never thicker than the film that lets this
+/// much light through (there and back, T^2) in the band it absorbs most; light paints such
+/// as yellows approach their masstone very slowly in the bands they hardly absorb.
+pub const FULL_GLAZE_T2: f32 = 0.02;
+/// Most glazes over the first layer (the paints in all layers count against "Paints per mix").
+pub const GLAZES_MAX: usize = 2;
 
 /// Most channels any model uses.
 pub const CH_MAX: usize = BANDS;
@@ -109,6 +160,33 @@ pub fn r_inf(ks: f32) -> f32 {
     1.0 + ks - (ks * ks + 2.0 * ks).sqrt()
 }
 
+/// Reflectance and transmittance of a free layer (absorption k, scattering s, thickness x).
+#[inline]
+pub fn film_rt(k: f32, s: f32, x: f32) -> (f32, f32) {
+    let sx = s * x;
+    if sx < 1e-5 {
+        return (0.0, (-k * x).exp());
+    }
+    if k < 1e-6 {
+        return (sx / (1.0 + sx), 1.0 / (1.0 + sx));
+    }
+    let a = 1.0 + k / s;
+    let b = (a * a - 1.0).sqrt();
+    let bsx = b * sx;
+    if bsx > 40.0 {
+        return (1.0 / (a + b), 0.0);
+    }
+    let (sh, ch) = (bsx.sinh(), bsx.cosh());
+    let d = a * sh + b * ch;
+    (sh / d, b / d)
+}
+
+/// Reflectance of a film (r, t) laid over a ground of reflectance rg.
+#[inline]
+pub fn over(r: f32, t: f32, rg: f32) -> f32 {
+    r + t * t * rg / (1.0 - r * rg).max(1e-6)
+}
+
 /// Reflectance of a layer (absorption k, scattering s, thickness x) over a ground of reflectance rg.
 #[inline]
 pub fn r_layer(k: f32, s: f32, x: f32, rg: f32) -> f32 {
@@ -145,16 +223,35 @@ pub enum Lighten {
 
 #[derive(Clone, Debug)]
 pub struct Recipe {
-    /// (palette paint index, parts)
+    /// (palette paint index, parts). With glazes this is the first layer: one paint, or
+    /// none for the bare white ground (acrylic/oil).
     pub parts: Vec<(usize, u32)>,
     pub lighten: Lighten,
+    /// Glazes painted over the first layer, bottom to top: (palette paint index, strength
+    /// as in `GLAZE_LOADS`). Empty for a mixture.
+    pub glazes: Vec<(usize, f32)>,
     pub srgb: [u8; 3],
     pub de: f32,
+}
+
+/// A glaze film ready to stack: paint, strength and the film's R and T per channel.
+struct Film {
+    paint: usize,
+    load: f32,
+    r: Ch,
+    t: Ch,
 }
 
 pub struct Mixer {
     pub medium: Medium,
     pub model: MixModel,
+    /// Mix or glaze (see `with_method`).
+    pub method: Method,
+    /// Glaze films of the palette's transparent and half-transparent paints.
+    films: Vec<Film>,
+    /// Film thickness of a full-strength glaze per palette paint (watercolor: 1, the
+    /// full-strength wash; acrylic/oil: see `FULL_GLAZE_DE`).
+    pub glaze_full: Vec<f32>,
     /// Channels in use (`model.channels()`).
     n: usize,
     /// Reflectance per band to linear sRGB (spectral model).
@@ -188,6 +285,16 @@ fn solve_watercolor_k(target: f32, s: f32, rg: f32) -> f32 {
         }
     }
     0.5 * (lo + hi)
+}
+
+/// The glaze film of paint `paint` (optics `o`) at strength `load` of a full glaze `full` thick.
+fn film_of(model: MixModel, o: &Optics, paint: usize, load: f32, full: f32) -> Film {
+    let x = load * full;
+    let (mut r, mut t) = ([0.0; CH_MAX], [0.0; CH_MAX]);
+    for c in 0..model.channels() {
+        (r[c], t[c]) = film_rt(o.k[c], o.s[c], x);
+    }
+    Film { paint, load, r, t }
 }
 
 pub fn optics_for(medium: Medium, model: MixModel, paint: &Paint) -> Optics {
@@ -247,9 +354,13 @@ impl Mixer {
                 }
             }
         }
-        Mixer {
+        let n_paints = palette.paints.len();
+        let mut m = Mixer {
             medium,
             model,
+            method: Method::Mix,
+            films: Vec::new(),
+            glaze_full: vec![1.0; n_paints],
             n: model.channels(),
             basis: spectral::basis(),
             optics,
@@ -260,7 +371,53 @@ impl Mixer {
             paper: channels_of(model, PAPER),
             pairs,
             triples,
+        };
+        for (i, p) in palette.paints.iter().enumerate() {
+            if p.transparency == Transparency::Opaque || Some(i) == white_idx || p.is_white() {
+                continue;
+            }
+            if !medium.uses_water() {
+                m.glaze_full[i] = m.full_glaze_thickness(i);
+            }
+            for &load in &GLAZE_LOADS {
+                let f = film_of(model, &m.optics[i], i, load, m.glaze_full[i]);
+                m.films.push(f);
+            }
         }
+        m
+    }
+
+    /// Acrylic/oil: the thinnest film of paint `i` that, over the white ground, comes within
+    /// `FULL_GLAZE_DE` of the paint's masstone or lets only `FULL_GLAZE_T2` through in its
+    /// most absorbed band (at most `FULL_GLAZE_MAX`).
+    fn full_glaze_thickness(&self, i: usize) -> f32 {
+        let o = self.optics[i];
+        let ground = self.base_reflect(&[], Lighten::None);
+        let masstone = lin_to_lab(self.to_linear(&self.reflect(&o.k, &o.s, 1.0, Lighten::None)));
+        let full_at = |x: f32| {
+            let f = film_of(self.model, &o, i, 1.0, x);
+            let de = delta_e(lin_to_lab(self.to_linear(&self.glaze_over(&f, &ground))), masstone);
+            let t2_min = f.t[..self.n].iter().fold(1.0f32, |a, &t| a.min(t * t));
+            de <= FULL_GLAZE_DE || t2_min <= FULL_GLAZE_T2
+        };
+        let de_at = |x: f32| if full_at(x) { 0.0 } else { f32::MAX };
+        let mut hi = 0.05f32;
+        while de_at(hi) > FULL_GLAZE_DE {
+            if hi >= FULL_GLAZE_MAX {
+                return FULL_GLAZE_MAX;
+            }
+            hi = (hi * 2.0).min(FULL_GLAZE_MAX);
+        }
+        let mut lo = hi / 2.0;
+        for _ in 0..16 {
+            let mid = 0.5 * (lo + hi);
+            if de_at(mid) > FULL_GLAZE_DE {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        hi
     }
 
     pub fn paper_srgb(&self) -> [u8; 3] {
@@ -284,9 +441,21 @@ impl Mixer {
         (k, s, w)
     }
 
+    /// Recipes found by `find` glaze instead of mix.
+    pub fn with_method(mut self, method: Method) -> Self {
+        self.method = method;
+        self
+    }
+
     /// Linear RGB of a mixture with summed K, S and weight, lightened by `lighten`.
     #[inline]
     fn finish(&self, k: &Ch, s: &Ch, w: f32, lighten: Lighten) -> [f32; 3] {
+        self.to_linear(&self.reflect(k, s, w, lighten))
+    }
+
+    /// Reflectance per channel of a mixture with summed K, S and weight, lightened by `lighten`.
+    #[inline]
+    fn reflect(&self, k: &Ch, s: &Ch, w: f32, lighten: Lighten) -> Ch {
         let mut out = [0.0; CH_MAX];
         match lighten {
             Lighten::Water(_) | Lighten::None if self.medium.uses_water() => {
@@ -304,7 +473,49 @@ impl Mixer {
                 }
             }
         }
-        self.to_linear(&out)
+        out
+    }
+
+    /// Reflectance of a recipe's first layer: the mixture, or with no paints the paper
+    /// (watercolor) or the white ground (acrylic/oil).
+    fn base_reflect(&self, parts: &[(usize, u32)], lighten: Lighten) -> Ch {
+        let (k, s, w) = self.sums(parts);
+        if w > 0.0 {
+            return self.reflect(&k, &s, w, lighten);
+        }
+        if self.medium.uses_water() {
+            self.paper
+        } else {
+            self.reflect(&self.white.k, &self.white.s, 1.0, Lighten::None)
+        }
+    }
+
+    /// Reflectance after laying film `f` over a ground of reflectance `rg`.
+    #[inline]
+    fn glaze_over(&self, f: &Film, rg: &Ch) -> Ch {
+        let mut out = [0.0; CH_MAX];
+        for c in 0..self.n {
+            out[c] = over(f.r[c], f.t[c], rg[c]);
+        }
+        out
+    }
+
+    /// Colours of a recipe layer by layer (sRGB): the first layer, then the colour after
+    /// each glaze. A mixture has one stage.
+    pub fn stages(&self, rc: &Recipe) -> Vec<[u8; 3]> {
+        let mut r = self.base_reflect(&rc.parts, rc.lighten);
+        let mut out = vec![lin_to_srgb8(self.to_linear(&r))];
+        for &(p, load) in &rc.glazes {
+            let f = film_of(self.model, &self.optics[p], p, load, self.glaze_full[p]);
+            r = self.glaze_over(&f, &r);
+            out.push(lin_to_srgb8(self.to_linear(&r)));
+        }
+        out
+    }
+
+    /// Whether the palette has paints transparent enough to glaze with.
+    pub fn can_glaze(&self) -> bool {
+        !self.films.is_empty()
     }
 
     /// Linear RGB of a reflectance per channel.
@@ -333,18 +544,15 @@ impl Mixer {
     }
 
     /// Best recipe for a target colour (Lab), using up to `max_paints` palette paints.
+    /// With `Method::Glaze` the recipe is layered (see `find_glaze`).
     pub fn find(&self, target: [f32; 3], max_paints: usize, allow_lighten: bool) -> Option<Recipe> {
         if self.candidates.is_empty() {
             return None;
         }
-        let water = self.medium.uses_water();
-        let lightens: Vec<Lighten> = if !allow_lighten {
-            vec![Lighten::None]
-        } else if water {
-            WATER_LOADS.iter().map(|&l| Lighten::Water(l)).collect()
-        } else {
-            WHITE_PARTS.iter().map(|&n| if n == 0 { Lighten::None } else { Lighten::White(n) }).collect()
-        };
+        if self.method == Method::Glaze {
+            return self.find_glaze(target, max_paints, allow_lighten);
+        }
+        let lightens = self.lightens(allow_lighten);
         let mut best: Option<(f32, Recipe)> = None;
         let consider = |parts: &[(usize, u32)], best: &mut Option<(f32, Recipe)>| {
             let (k, s, w) = self.sums(parts);
@@ -356,7 +564,7 @@ impl Mixer {
                 if best.as_ref().is_none_or(|b| score < b.0) {
                     *best = Some((
                         score,
-                        Recipe { parts: parts.to_vec(), lighten: l, srgb: lin_to_srgb8(lin), de },
+                        Recipe { parts: parts.to_vec(), lighten: l, glazes: Vec::new(), srgb: lin_to_srgb8(lin), de },
                     ));
                 }
             }
@@ -388,17 +596,120 @@ impl Mixer {
         best.map(|b| b.1)
     }
 
-    pub fn describe_parts(&self, r: &Recipe) -> String {
-        let mut parts = r.parts.clone();
-        parts.sort_by(|a, b| b.1.cmp(&a.1));
-        parts
-            .iter()
-            .map(|&(i, n)| format!("{} {}", n, self.names[i]))
-            .collect::<Vec<_>>()
-            .join(" + ")
+    /// Lightening steps tried for a mixture or a first layer.
+    fn lightens(&self, allow_lighten: bool) -> Vec<Lighten> {
+        if !allow_lighten {
+            vec![Lighten::None]
+        } else if self.medium.uses_water() {
+            WATER_LOADS.iter().map(|&l| Lighten::Water(l)).collect()
+        } else {
+            WHITE_PARTS.iter().map(|&n| if n == 0 { Lighten::None } else { Lighten::White(n) }).collect()
+        }
     }
 
+    /// Best layered recipe: every first layer (one paint, lightened as allowed; for
+    /// acrylic/oil also the bare white ground) with up to `GLAZES_MAX` glazes of different
+    /// transparent or half-transparent paints over it, at most `max_paints` paints in all.
+    /// Searched exhaustively and scored like mixtures (dE plus `EXTRA_PAINT_PENALTY` per
+    /// paint after the first).
+    fn find_glaze(&self, target: [f32; 3], max_paints: usize, allow_lighten: bool) -> Option<Recipe> {
+        let mut bases: Vec<(Option<usize>, Lighten)> = Vec::new();
+        if !self.medium.uses_water() {
+            bases.push((None, Lighten::None));
+        }
+        let lightens = self.lightens(allow_lighten);
+        for &i in &self.candidates {
+            for &l in &lightens {
+                bases.push((Some(i), l));
+            }
+        }
+        let max_paints = max_paints.max(1);
+        let mut best: Option<(f32, Recipe)> = None;
+        let mut consider = |base: (Option<usize>, Lighten), glazes: &[&Film], r: &Ch| {
+            let lin = self.to_linear(r);
+            let de = delta_e(lin_to_lab(lin), target);
+            let paints = base.0.is_some() as usize + glazes.len();
+            let score = de + EXTRA_PAINT_PENALTY * (paints as f32 - 1.0).max(0.0);
+            if best.as_ref().is_none_or(|b| score < b.0) {
+                best = Some((
+                    score,
+                    Recipe {
+                        parts: base.0.map(|i| vec![(i, 1)]).unwrap_or_default(),
+                        lighten: base.1,
+                        glazes: glazes.iter().map(|f| (f.paint, f.load)).collect(),
+                        srgb: lin_to_srgb8(lin),
+                        de,
+                    },
+                ));
+            }
+        };
+        for &base in &bases {
+            let parts: Vec<(usize, u32)> = base.0.map(|i| vec![(i, 1)]).unwrap_or_default();
+            let r0 = self.base_reflect(&parts, base.1);
+            if base.0.is_some() {
+                consider(base, &[], &r0);
+            }
+            let room = (max_paints - base.0.is_some() as usize).min(GLAZES_MAX);
+            if room == 0 {
+                continue;
+            }
+            for f1 in &self.films {
+                if Some(f1.paint) == base.0 {
+                    continue;
+                }
+                let r1 = self.glaze_over(f1, &r0);
+                consider(base, &[f1], &r1);
+                if room < 2 {
+                    continue;
+                }
+                for f2 in &self.films {
+                    if f2.paint == f1.paint || Some(f2.paint) == base.0 {
+                        continue;
+                    }
+                    let r2 = self.glaze_over(f2, &r1);
+                    consider(base, &[f1, f2], &r2);
+                }
+            }
+        }
+        best.map(|b| b.1)
+    }
+
+    /// Whether a recipe is described as layers (first layer, then glazes).
+    fn layered(&self, r: &Recipe) -> bool {
+        !r.glazes.is_empty() || self.method == Method::Glaze
+    }
+
+    /// The paints of a recipe as pieces and the text that joins them: "3 Cobalt Blue",
+    /// "1 Crimson" joined by " + " for a mixture; "Cobalt Blue", "then Crimson" joined by
+    /// ", " for layers.
+    pub fn part_pieces(&self, r: &Recipe) -> (Vec<String>, &'static str) {
+        if self.layered(r) {
+            let mut pieces = vec![match r.parts.first() {
+                Some(&(i, _)) => self.names[i].clone(),
+                None if self.medium.uses_water() => "Paper".to_string(),
+                None => format!("{} ground", self.white_name),
+            }];
+            for &(i, _) in &r.glazes {
+                pieces.push(format!("then {}", self.names[i]));
+            }
+            return (pieces, ", ");
+        }
+        let mut parts = r.parts.clone();
+        parts.sort_by(|a, b| b.1.cmp(&a.1));
+        (parts.iter().map(|&(i, n)| format!("{} {}", n, self.names[i])).collect(), " + ")
+    }
+
+    pub fn describe_parts(&self, r: &Recipe) -> String {
+        let (pieces, sep) = self.part_pieces(r);
+        pieces.join(sep)
+    }
+
+    /// Second line of a recipe: how much water or white (mixture), or how strong each
+    /// layer is (glazing).
     pub fn describe_lighten(&self, r: &Recipe) -> String {
+        if self.layered(r) {
+            return self.describe_layers(r);
+        }
         match r.lighten {
             Lighten::None => {
                 if self.medium.uses_water() {
@@ -411,6 +722,55 @@ impl Mixer {
             Lighten::Water(load) => format!("water: {} ({:.0}% strength)", water_label(load), load * 100.0),
             Lighten::White(n) => format!("+ {} part{} {}", n, if n == 1 { "" } else { "s" }, self.white_name),
         }
+    }
+}
+
+impl Mixer {
+    /// How strong each layer of a layered recipe is, in the order the first line names them:
+    /// watercolor "like tea / like milk / light wash"; acrylic/oil "1 paint + 3 white;
+    /// glazes: thin / a veil" (the white goes into the first layer).
+    fn describe_layers(&self, r: &Recipe) -> String {
+        let water = self.medium.uses_water();
+        let glazes: Vec<&str> = r.glazes.iter().map(|&(_, l)| if water { water_label(l) } else { glaze_label(l) }).collect();
+        if water {
+            let mut layers = Vec::new();
+            if !r.parts.is_empty() {
+                layers.push(match r.lighten {
+                    Lighten::Water(l) => water_label(l),
+                    _ => "full strength",
+                });
+            }
+            layers.extend(glazes);
+            return layers.join(" / ");
+        }
+        let base = match (r.parts.is_empty(), r.lighten) {
+            (true, _) => String::new(),
+            (false, Lighten::White(n)) => format!("1 paint + {n} white"),
+            (false, _) => "no white".to_string(),
+        };
+        let g = match glazes.len() {
+            0 => "no glaze".to_string(),
+            1 => format!("glaze: {}", glazes[0]),
+            _ => format!("glazes: {}", glazes.join(" / ")),
+        };
+        if base.is_empty() { g } else { format!("{base}; {g}") }
+    }
+}
+
+/// Acrylic/oil glaze strength in words.
+pub fn glaze_label(load: f32) -> &'static str {
+    if load >= 0.9 {
+        "strong"
+    } else if load >= 0.45 {
+        "medium"
+    } else if load >= 0.25 {
+        "thin"
+    } else if load >= 0.12 {
+        "very thin"
+    } else if load >= 0.06 {
+        "a veil"
+    } else {
+        "a faint veil"
     }
 }
 
@@ -514,6 +874,160 @@ mod tests {
             let sp = Mixer::new(&pal, MixModel::Spectral).find(target, 3, true).unwrap();
             let rgb = Mixer::new(&pal, MixModel::Rgb).find(target, 3, true).unwrap();
             assert!(sp.de < 6.0 || sp.de <= rgb.de, "{}: spectral dE {}, RGB dE {}", pal.name, sp.de, rgb.de);
+        }
+    }
+
+    /// A film stacked with R and T over a ground equals the closed-form layer over that
+    /// ground, and two films of one paint stack to one film of the summed thickness.
+    #[test]
+    fn films_stack_like_one_layer() {
+        for (k, s) in [(0.3f32, 0.12f32), (2.0, 0.45), (0.05, 1.6), (4.0, 0.12)] {
+            for rg in [0.05f32, 0.4, 0.9] {
+                for (a, b) in [(0.3f32, 0.5f32), (1.0, 1.0), (0.1, 2.0)] {
+                    let (r, t) = film_rt(k, s, a);
+                    assert!((over(r, t, rg) - r_layer(k, s, a, rg)).abs() < 1e-4, "k {k} s {s} x {a} rg {rg}");
+                    let (r2, t2) = film_rt(k, s, b);
+                    let two = over(r2, t2, over(r, t, rg));
+                    let one = r_layer(k, s, a + b, rg);
+                    assert!((two - one).abs() < 1e-3, "k {k} s {s} {a}+{b} rg {rg}: {two} vs {one}");
+                }
+            }
+        }
+    }
+
+    /// Watercolor: one wash in glazing is the same colour as that paint diluted on the palette.
+    #[test]
+    fn first_wash_matches_diluted_paint() {
+        let pal = &default_store().palettes[0];
+        for model in MixModel::ALL {
+            let m = Mixer::new(pal, model).with_method(Method::Glaze);
+            for load in [1.0, 0.3] {
+                let rc = Recipe { parts: vec![(1, 1)], lighten: Lighten::Water(load), glazes: vec![], srgb: [0; 3], de: 0.0 };
+                assert_eq!(m.stages(&rc)[0], m.mix_srgb(&[(1, 1)], Lighten::Water(load)));
+            }
+        }
+    }
+
+    /// A transparent yellow glaze over a blue wash turns it green. Its lightness barely
+    /// rises (a little from the film's own scattering in the bright yellow-green band),
+    /// while a glaze over white paper always darkens it.
+    #[test]
+    fn yellow_glaze_over_blue_is_green() {
+        let pal = &default_store().palettes[0];
+        let blue = pal.paints.iter().position(|p| p.name == "Cobalt Blue").unwrap();
+        let yellow = pal.paints.iter().position(|p| p.name == "Lemon Yellow").unwrap();
+        for model in MixModel::ALL {
+            let m = Mixer::new(pal, model).with_method(Method::Glaze);
+            let rc = Recipe { parts: vec![(blue, 1)], lighten: Lighten::Water(0.55), glazes: vec![(yellow, 1.0)], srgb: [0; 3], de: 0.0 };
+            let st = m.stages(&rc);
+            let h = hue_deg(srgb8_to_lab(st[1]));
+            assert!((100.0..200.0).contains(&h), "{model:?} hue {h} {:?}", st);
+            assert!(srgb8_to_lab(st[1])[0] < srgb8_to_lab(st[0])[0] + 8.0, "{model:?} glaze lightened {:?}", st);
+            let on_paper = Recipe { parts: vec![], lighten: Lighten::None, glazes: vec![(yellow, 1.0)], srgb: [0; 3], de: 0.0 };
+            let st = m.stages(&on_paper);
+            assert!(srgb8_to_lab(st[1])[0] < srgb8_to_lab(st[0])[0], "{model:?} glaze over paper lightened {:?}", st);
+        }
+    }
+
+    /// Glazing finds layered recipes in every starter palette, uses only transparent or
+    /// half-transparent paints as glazes, keeps to the paint limit, and its reported colour
+    /// is the colour of its layers.
+    #[test]
+    fn glaze_search_finds_layered_recipes() {
+        let targets = [[120u8, 140, 90], [200, 120, 80], [80, 90, 130], [230, 220, 200], [60, 50, 45], [150, 60, 90]];
+        for pal in default_store().palettes {
+            for model in MixModel::ALL {
+                let m = Mixer::new(&pal, model).with_method(Method::Glaze);
+                let mut glazed = 0;
+                for max in 1..=3 {
+                    for t in targets {
+                        let rc = m.find(srgb8_to_lab(t), max, true).unwrap();
+                        assert!(rc.parts.len() + rc.glazes.len() <= max, "{}: {} paints > {max}", pal.name, rc.parts.len() + rc.glazes.len());
+                        for &(g, _) in &rc.glazes {
+                            assert!(pal.paints[g].transparency != Transparency::Opaque, "{}: opaque glaze {}", pal.name, pal.paints[g].name);
+                        }
+                        assert_eq!(*m.stages(&rc).last().unwrap(), rc.srgb);
+                        assert!(!m.describe_parts(&rc).is_empty());
+                        glazed += !rc.glazes.is_empty() as usize;
+                    }
+                }
+                assert!(glazed > 0, "{} {model:?}: no recipe used a glaze", pal.name);
+            }
+        }
+    }
+
+    /// Acrylic/oil: for every glazing paint, a strong glaze over the white ground is strongly
+    /// coloured, a veil only tints the white, and a strong glaze is no darker than the
+    /// paint's masstone, whether the paint is a yellow or a black.
+    #[test]
+    fn glaze_strength_means_the_same_for_every_paint() {
+        for pal in default_store().palettes.into_iter().filter(|p| !p.medium.uses_water()) {
+            for model in MixModel::ALL {
+                let m = Mixer::new(&pal, model).with_method(Method::Glaze);
+                for (i, p) in pal.paints.iter().enumerate() {
+                    if p.transparency == Transparency::Opaque || p.is_white() {
+                        continue;
+                    }
+                    let at = |load: f32| {
+                        let rc = Recipe { parts: vec![], lighten: Lighten::None, glazes: vec![(i, load)], srgb: [0; 3], de: 0.0 };
+                        srgb8_to_lab(m.stages(&rc)[1])
+                    };
+                    let mass = srgb8_to_lab(m.mix_srgb(&[(i, 1)], Lighten::None));
+                    let ground = at(0.0);
+                    let strong = at(GLAZE_LOADS[0]);
+                    let veil = at(0.075);
+                    let name = &p.name;
+                    assert!(delta_e(strong, ground) > 25.0, "{model:?} {name}: strong {strong:?} vs white {ground:?}");
+                    assert!(delta_e(veil, ground) < 20.0, "{model:?} {name}: veil {veil:?} vs white {ground:?}");
+                    assert!(strong[0] >= mass[0] - 1.0, "{model:?} {name}: strong {strong:?} darker than masstone {mass:?}");
+                }
+            }
+        }
+    }
+
+    /// A palette with no transparent paints still gets (unglazed) recipes.
+    #[test]
+    fn glazing_without_transparent_paints() {
+        let mut pal = default_store().palettes[2].clone();
+        for p in &mut pal.paints {
+            p.transparency = Transparency::Opaque;
+        }
+        let m = Mixer::new(&pal, MixModel::Spectral).with_method(Method::Glaze);
+        assert!(!m.can_glaze());
+        let rc = m.find(srgb8_to_lab([120, 140, 90]), 3, true).unwrap();
+        assert!(rc.glazes.is_empty() && rc.parts.len() == 1);
+    }
+
+    #[test]
+    #[ignore]
+    fn explore_glazes() {
+        for pal in default_store().palettes {
+            let m = Mixer::new(&pal, MixModel::Spectral).with_method(Method::Glaze);
+            println!("{} ({:?})", pal.name, pal.medium);
+            for (i, p) in pal.paints.iter().enumerate() {
+                if p.transparency == Transparency::Opaque {
+                    continue;
+                }
+                if pal.medium.uses_water() {
+                    continue;
+                }
+                let line: Vec<String> = GLAZE_LOADS
+                    .iter()
+                    .rev()
+                    .map(|&l| {
+                        let rc = Recipe { parts: vec![], lighten: Lighten::None, glazes: vec![(i, l)], srgb: [0; 3], de: 0.0 };
+                        format!("{}:{:?}", glaze_label(l), m.stages(&rc)[1])
+                    })
+                    .collect();
+                println!("  {:22} {:?} full {:.2}  {}", p.name, p.color, m.glaze_full[i], line.join(" "));
+            }
+            let t0 = std::time::Instant::now();
+            for t in [[120u8, 140, 90], [200, 120, 80], [80, 90, 130], [230, 220, 200], [60, 50, 45], [150, 60, 90]] {
+                let rc = m.find(srgb8_to_lab(t), 3, true).unwrap();
+                let mx = Mixer::new(&pal, MixModel::Spectral).find(srgb8_to_lab(t), 3, true).unwrap();
+                println!("   {t:?} glaze dE {:.1} {} | {}   (mix dE {:.1})", rc.de, m.describe_parts(&rc), m.describe_lighten(&rc), mx.de);
+            }
+            println!("   {:.1} ms per glaze search", t0.elapsed().as_secs_f64() * 1000.0 / 6.0);
         }
     }
 

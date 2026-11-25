@@ -1,0 +1,16 @@
+{
+  "id": "unk_b8c7f9cee4b78b27",
+  "revision": 2,
+  "question": "How thick is a real glaze? The app's glaze strengths (5 steps from a full-strength film down to 7.5%) and the acrylic/oil full-glaze thickness (2.0 in the paint's K/S units) are estimated, not measured, and the first layer is limited to one paint (plus white for acrylic/oil).",
+  "severity": "medium",
+  "domain": "mixing",
+  "status": "open",
+  "probes": [
+    "Current model (supersedes the numbers in the question): 6 glaze strengths 1.0 to 0.035 of a full glaze; acrylic/oil full glaze per paint = thinnest film passing <=2% (T^2) in its most absorbed band or within 2 dE of its masstone over white (e.g. Ivory Black 0.14, Phthalo Blue 0.58, Hansa Yellow Light 2.6 K/S units). All estimated.",
+    "Artist paints a glaze ladder (one transparent paint at several dilutions over white and over a dark stripe) and compares with the app's layer chips",
+    "Measure the glaze swatches with a colorimeter or a calibrated photo and fit GLAZE_LOADS, FULL_GLAZE_T2 and FULL_GLAZE_DE",
+    "Still a limit: the first layer is one paint (plus white for acrylic/oil), not a mixture"
+  ],
+  "evidence_for": [],
+  "evidence_against": []
+}

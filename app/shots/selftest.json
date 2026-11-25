@@ -46,6 +46,21 @@
       "step": "mix_model_spectral"
     },
     {
+      "detail": "the Mix / Glaze switch is drawn and explains itself: \"Glaze: transparent layers, each painted once the one below is dry.\"",
+      "passed": true,
+      "step": "method_tooltip"
+    },
+    {
+      "detail": "Glaze chosen: 10 recipes, 10 with glazes (only transparent or half-transparent paints, at most 3 paints, colour = its layers), mean dE 1.2; e.g. Yellow Deep, then Phthalo Green (full strength / full strength)",
+      "passed": true,
+      "step": "glaze"
+    },
+    {
+      "detail": "Mix chosen again: every recipe is a mixture, no glazes",
+      "passed": true,
+      "step": "glaze_off"
+    },
+    {
       "detail": "clicked spot [150, 149, 169] got a recipe: 4 Ultramarine Blue + 3 Crimson + 2 Phthalo Green",
       "passed": true,
       "step": "pick"
@@ -91,6 +106,11 @@
       "step": "export_pdf"
     },
     {
+      "detail": "Export PDF in Glaze mode: 209 KB brochure with a \"Glazing recipes\" page and the method in its settings",
+      "passed": true,
+      "step": "export_pdf_glaze"
+    },
+    {
       "detail": "created \"Acrylic 3\" (Acrylic) with paints: Hansa Yellow Light PY3 Transparent; Crimson PR206 Transparent",
       "passed": true,
       "step": "palette"
@@ -99,6 +119,11 @@
       "detail": "switched to acrylic: palette \"Acrylic 1\", recipes recomputed, lighter colours use white paint",
       "passed": true,
       "step": "medium"
+    },
+    {
+      "detail": "acrylic palette \"Acrylic 1\" glazed: 8 of 10 recipes use glazes of transparent paints over an opaque first layer; e.g. Yellow Ochre, then Phthalo Blue, then Burnt Umber (no white; glazes: strong / thin)",
+      "passed": true,
+      "step": "glaze_acrylic"
     },
     {
       "detail": "the recent menu lists one picture and \"Clear recent list\"",

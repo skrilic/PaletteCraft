@@ -8,7 +8,7 @@ mod update_view;
 use crate::colour::{srgb8_to_lab, to_hex};
 use crate::grid::{Overlay, OverlaySettings};
 use crate::imgproc::{self, Analysis, ColourLevels, ValueLevels};
-use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, MixModel, Mixer, Recipe, match_label};
+use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, Method, MixModel, Mixer, Recipe, match_label};
 use crate::palette::{self, Medium, Palette, Store, Transparency};
 use crate::recent::{self, PictureSettings, Recent};
 use crate::ui::{self, BAD, BG, BORDER, GOOD, MUTED, PANEL, Pick, TEXT, Ui, WARN, col};
@@ -149,6 +149,8 @@ pub struct App {
     pub allow_lighten: bool,
     /// Spectral or RGB Kubelka-Munk.
     pub mix_model: MixModel,
+    /// Recipes as mixtures or as glazes (transparent layers).
+    pub method: Method,
     pub picked: Option<Picked>,
     recipe_scroll: usize,
 
@@ -224,6 +226,7 @@ impl App {
             max_paints: 3,
             allow_lighten: true,
             mix_model: MixModel::Spectral,
+            method: Method::Mix,
             picked: None,
             recipe_scroll: 0,
             status: String::new(),
@@ -470,6 +473,7 @@ impl App {
             max_paints: self.max_paints,
             allow_lighten: self.allow_lighten,
             mix_model: self.mix_model,
+            method: self.method,
             picked: self.picked.as_ref().map(|p| [p.pos.x, p.pos.y]),
         })
     }
@@ -505,6 +509,7 @@ impl App {
         self.max_paints = s.max_paints.clamp(1, 3);
         self.allow_lighten = s.allow_lighten;
         self.mix_model = s.mix_model;
+        self.method = s.method;
         self.palette_idx = self.store.palettes.iter().position(|p| p.medium == s.medium && p.name == s.palette);
         self.select_medium(s.medium);
         self.image_changed();
@@ -548,11 +553,16 @@ impl App {
         }
     }
 
+    /// The mixer recipes are searched with: current palette, mixing model and method.
+    pub fn recipe_mixer(&self) -> Option<Mixer> {
+        self.current_palette().map(|p| Mixer::new(p, self.mix_model).with_method(self.method))
+    }
+
     /// Bring derived data (levels, texture, mixer, recipes) up to date.
     pub fn update_derived(&mut self) {
         if self.mix_dirty {
             self.mix_dirty = false;
-            self.mixer = self.current_palette().map(|p| Mixer::new(p, self.mix_model));
+            self.mixer = self.recipe_mixer();
             self.recipes.clear();
             if let (Some(p), Some(m)) = (&mut self.picked, &self.mixer) {
                 p.recipe = m.find(srgb8_to_lab(p.srgb), self.max_paints as usize, self.allow_lighten);
@@ -859,14 +869,15 @@ fn match_tip(de: f32) -> Vec<(String, Color)> {
 /// Recipe for a narrow card: the paints and parts broken over up to two lines where they
 /// do not fit, then how much to lighten and how well it matches. Returns the lines used.
 fn recipe_text_wrapped(ui: &mut Ui, id: &str, m: &Mixer, rc: &Recipe, x: f32, y: f32, w: f32) -> usize {
-    let parts = m.describe_parts(rc);
+    // mixture: "3 Cobalt Blue + 1 Crimson"; glazes: "Cobalt Blue, then Crimson"
+    let (pieces, sep) = m.part_pieces(rc);
     let mut lines = vec![String::new()];
-    for (k, piece) in parts.split(" + ").enumerate() {
+    for (k, piece) in pieces.iter().enumerate() {
         let n = lines.len();
         let last = &mut lines[n - 1];
-        let joined = if k == 0 { piece.to_string() } else { format!("{last} + {piece}") };
+        let joined = if k == 0 { piece.to_string() } else { format!("{last}{sep}{piece}") };
         if k > 0 && ui.measure(&joined, 15.0) > w && n < 2 {
-            last.push_str(" +");
+            last.push_str(sep.trim_end());
             lines.push(piece.to_string());
         } else {
             *last = joined;

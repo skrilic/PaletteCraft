@@ -5,7 +5,7 @@
 
 use crate::app::View;
 use crate::grid::OverlaySettings;
-use crate::km::MixModel;
+use crate::km::{Method, MixModel};
 use crate::palette::Medium;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -34,6 +34,9 @@ pub struct PictureSettings {
     /// Mixing model (pictures saved before it existed get the default, spectral).
     #[serde(default)]
     pub mix_model: MixModel,
+    /// Mix or glaze (pictures saved before it existed get the default, mix).
+    #[serde(default)]
+    pub method: Method,
     /// Clicked spot, 0..1 across the (cropped) picture.
     pub picked: Option<[f32; 2]>,
 }
@@ -172,6 +175,7 @@ mod tests {
             max_paints: 2,
             allow_lighten: false,
             mix_model: MixModel::Rgb,
+            method: Method::Glaze,
             picked: Some([0.25, 0.75]),
         }
     }

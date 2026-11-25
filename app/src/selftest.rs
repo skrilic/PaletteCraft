@@ -170,6 +170,57 @@ impl SelfTest {
             res(r, "mix_model_spectral", ok, detail);
         })));
 
+        // Glazing: recipes become layers (a first wash, then transparent glazes); then back to mixing.
+        q.push_back(Hover("method_tip"));
+        q.push_back(Wait(1));
+        q.push_back(Check(Box::new(|_app, ui, r| {
+            let tip = ui.tooltip_text().unwrap_or_default();
+            let ok = ui.hud.contains("method") && tip.contains("Mix:") && tip.contains("Glaze:") && tip.contains("first wash");
+            res(r, "method_tooltip", ok, format!("the Mix / Glaze switch is drawn and explains itself: \"{}\"", tip.lines().nth(2).unwrap_or("no tooltip")));
+        })));
+        q.push_back(Click("method_1"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let (Some(m), Some(p)) = (&app.mixer, app.current_palette()) else {
+                res(r, "glaze", false, "no palette or mixer".into());
+                return;
+            };
+            let recipes: Vec<_> = app.recipes.iter().flatten().collect();
+            let glazed: Vec<_> = recipes.iter().filter(|rc| !rc.glazes.is_empty()).collect();
+            let all_transparent = glazed.iter().all(|rc| rc.glazes.iter().all(|&(g, _)| p.paints[g].transparency != Transparency::Opaque));
+            let within = recipes.iter().all(|rc| rc.parts.len() + rc.glazes.len() <= app.max_paints as usize);
+            let consistent = recipes.iter().all(|rc| m.stages(rc).last() == Some(&rc.srgb));
+            let example = glazed.first().map(|rc| format!("{} ({})", m.describe_parts(rc), m.describe_lighten(rc))).unwrap_or_default();
+            let mean = recipes.iter().map(|rc| rc.de).sum::<f32>() / recipes.len().max(1) as f32;
+            let ok = app.method == crate::km::Method::Glaze
+                && m.method == crate::km::Method::Glaze
+                && app.recipes_done()
+                && !glazed.is_empty()
+                && all_transparent
+                && within
+                && consistent
+                && example.contains(", then ");
+            res(
+                r,
+                "glaze",
+                ok,
+                format!(
+                    "Glaze chosen: {} recipes, {} with glazes (only transparent or half-transparent paints, at most {} paints, colour = its layers), mean dE {mean:.1}; e.g. {example}",
+                    recipes.len(),
+                    glazed.len(),
+                    app.max_paints
+                ),
+            );
+        })));
+        q.push_back(Click("method_0"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let ok = app.method == crate::km::Method::Mix && app.recipes_done() && app.recipes.iter().flatten().all(|rc| rc.glazes.is_empty());
+            res(r, "glaze_off", ok, "Mix chosen again: every recipe is a mixture, no glazes".into());
+        })));
+
         // Pick a spot on the original picture.
         q.push_back(Click("view_original"));
         q.push_back(Wait(2));
@@ -291,6 +342,33 @@ impl SelfTest {
                 ),
             );
         })));
+        // The brochure in glazing mode lists the layered recipes; then back to mixing.
+        q.push_back(Click("method_1"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, _ui, _r| {
+            if let Some(p) = &app.export_path_override {
+                let _ = std::fs::remove_file(p);
+            }
+        })));
+        q.push_back(Click("export_pdf"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let bytes = app.export_path_override.as_ref().and_then(|p| std::fs::read(p).ok()).unwrap_or_default();
+            let text = String::from_utf8_lossy(&bytes);
+            let wanted = ["(Glazing recipes)", "(Method)", "(glazing: transparent layers over a first layer)", "(Layers)", ", then "];
+            let missing: Vec<&str> = wanted.iter().copied().filter(|s| !text.contains(s)).collect();
+            let ok = bytes.starts_with(b"%PDF-") && missing.is_empty();
+            let detail = if missing.is_empty() {
+                format!("Export PDF in Glaze mode: {} KB brochure with a \"Glazing recipes\" page and the method in its settings", bytes.len() / 1024)
+            } else {
+                format!("Export PDF in Glaze mode is missing {missing:?}")
+            };
+            res(r, "export_pdf_glaze", ok, detail);
+        })));
+        q.push_back(Click("method_0"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
 
         // Palettes: create an acrylic palette and type in a paint.
         let count = std::rc::Rc::new(std::cell::Cell::new(0usize));
@@ -357,6 +435,45 @@ impl SelfTest {
                 ),
             );
         })));
+        // Glazing with acrylic: an opaque first layer (one paint with white, or the white
+        // ground), glazes of transparent paints only; then back to mixing.
+        q.push_back(Click("method_1"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let (Some(m), Some(p)) = (&app.mixer, app.current_palette()) else {
+                res(r, "glaze_acrylic", false, "no palette or mixer".into());
+                return;
+            };
+            let recipes: Vec<_> = app.recipes.iter().flatten().collect();
+            let glazed: Vec<_> = recipes.iter().filter(|rc| !rc.glazes.is_empty()).collect();
+            let transparent_only = glazed.iter().all(|rc| rc.glazes.iter().all(|&(g, _)| p.paints[g].transparency != Transparency::Opaque && !p.paints[g].is_white()));
+            let first_layers_ok = recipes.iter().all(|rc| rc.parts.len() <= 1 && rc.parts.iter().all(|&(i, _)| !p.paints[i].is_white()));
+            let consistent = recipes.iter().all(|rc| m.stages(rc).last() == Some(&rc.srgb));
+            let example = glazed.first().map(|rc| format!("{} ({})", m.describe_parts(rc), m.describe_lighten(rc))).unwrap_or_default();
+            let ok = app.medium == Medium::Acrylic
+                && m.medium == Medium::Acrylic
+                && app.recipes_done()
+                && (!m.can_glaze() || !glazed.is_empty())
+                && transparent_only
+                && first_layers_ok
+                && consistent
+                && ui.hud.contains("method");
+            res(
+                r,
+                "glaze_acrylic",
+                ok,
+                format!(
+                    "acrylic palette \"{}\" glazed: {} of {} recipes use glazes of transparent paints over an opaque first layer; e.g. {example}",
+                    p.name,
+                    glazed.len(),
+                    recipes.len()
+                ),
+            );
+        })));
+        q.push_back(Click("method_0"));
+        q.push_back(Wait(2));
+        q.push_back(WaitUntil(Box::new(|app| app.recipes_done()), 900));
 
         // Recently opened: the arrow beside "Open picture..." lists the picture main put there.
         q.push_back(Click("open_recent"));

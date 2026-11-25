@@ -593,13 +593,54 @@ impl App {
             ui.text("Create a palette for this kind of paint first.", x, y + 14.0, 14.0, MUTED);
             y += 34.0;
         }
+        // method: mix on the palette, or glaze (transparent layers)
+        ui.text("Method", x, y + 18.0, 14.0, TEXT);
+        let labels: Vec<&str> = Method::ALL.iter().map(|m| m.label()).collect();
+        let cur = Method::ALL.iter().position(|m| *m == self.method).unwrap_or(0);
+        let seg = Rect::new(x + 104.0, y, 160.0_f32.min(bw - 104.0), 26.0);
+        if let Some(i) = ui.segmented("method", seg, &labels, cur) {
+            if Method::ALL[i] != self.method {
+                self.method = Method::ALL[i];
+                self.mix_dirty = true;
+            }
+        }
+        ui.hud("method");
+        if self.method == Method::Glaze && self.mixer.as_ref().is_some_and(|m| !m.can_glaze()) {
+            let hint_x = seg.x + seg.w + 10.0;
+            ui.text_fit("no transparent paints", hint_x, y + 18.0, 12.0, WARN, x + bw - hint_x);
+        }
+        let water = self.medium.uses_water();
+        ui.tooltip("method_tip", Rect::new(x, y, seg.x + seg.w - x, 26.0), || {
+            let mut lines = vec![
+                ("How each colour is reached".to_string(), TEXT),
+                ("Mix: the paints are mixed together on the palette.".to_string(), MUTED),
+                ("Glaze: transparent layers, each painted once the one below is dry.".to_string(), MUTED),
+            ];
+            if water {
+                lines.push(("A first wash of one paint on the paper, then up to two glazes".to_string(), MUTED));
+                lines.push(("of transparent or half-transparent paints thinned with water.".to_string(), MUTED));
+            } else {
+                lines.push(("An opaque first layer (one paint with white, or the white ground),".to_string(), MUTED));
+                lines.push(("then up to two thin glazes of transparent or half-transparent".to_string(), MUTED));
+                lines.push(("paints thinned with glazing medium.".to_string(), MUTED));
+            }
+            lines.push(("Recipes name the layers from the first one up; \"Layers\" sets how many.".to_string(), MUTED));
+            lines
+        });
+        y += 36.0;
         // mixing options; on a narrow panel the checkbox goes on its own line
-        ui.text("Paints per mix", x, y + 18.0, 14.0, TEXT);
+        let count_label = if self.method == Method::Glaze { "Layers" } else { "Paints per mix" };
+        ui.text(count_label, x, y + 18.0, 14.0, TEXT);
         if let Some(i) = ui.segmented("max_paints", Rect::new(x + 104.0, y, 117.0, 26.0), &["1", "2", "3"], self.max_paints as usize - 1) {
             self.max_paints = i as i32 + 1;
             self.mix_dirty = true;
         }
-        let lab = if self.medium.uses_water() { "Lighten with water" } else { "Lighten with white" };
+        // in glazing, water or white only lightens the first layer (glazes are thinned anyway)
+        let lab = match (self.method, self.medium.uses_water()) {
+            (Method::Glaze, _) => "Lighten first layer",
+            (_, true) => "Lighten with water",
+            (_, false) => "Lighten with white",
+        };
         let narrow = bw < 380.0;
         let lr = if narrow { Rect::new(x, y + 34.0, bw, 26.0) } else { Rect::new(x + 236.0, y, bw - 236.0, 26.0) };
         if ui.checkbox("allow_lighten", lr, lab, &mut self.allow_lighten) {
@@ -688,6 +729,9 @@ impl App {
                     let tx = sx + 62.0;
                     let info = format!("{}.   {:.0}% of the picture   value {}/{}", i + 1, c.share[i] * 100.0, value_no, nvals);
                     ui.text(&info, tx, rr.y + 17.0, 12.0, MUTED);
+                    if !rc.glazes.is_empty() {
+                        layer_chips(ui, &format!("recipe_layers_{i}"), m, rc, rr.x + rr.w - 8.0, rr.y + 7.0);
+                    }
                     if wrap {
                         recipe_text_wrapped(ui, &format!("recipe_match_{i}"), m, rc, tx, rr.y + 36.0, tw);
                     } else {
@@ -774,4 +818,28 @@ impl App {
         rrect_lines(Rect::new(tx - 6.0, cy + 18.0, tw + 12.0, 24.0), 4.0, BORDER);
         ui.text(&s, tx, cy + 35.0, 14.0, TEXT);
     }
+}
+
+/// Glazing recipe: one small chip per layer with the colour the painting has after that
+/// layer (first layer, then each glaze), right-aligned to `right`, top at `y`. Hovering
+/// names the layers.
+fn layer_chips(ui: &mut Ui, id: &str, m: &Mixer, rc: &Recipe, right: f32, y: f32) {
+    const CHIP_W: f32 = 16.0;
+    const CHIP_H: f32 = 12.0;
+    const GAP: f32 = 4.0;
+    let stages = m.stages(rc);
+    let n = stages.len() as f32;
+    let x0 = right - n * CHIP_W - (n - 1.0) * GAP;
+    for (k, c) in stages.iter().enumerate() {
+        swatch(Rect::new(x0 + k as f32 * (CHIP_W + GAP), y, CHIP_W, CHIP_H), *c);
+    }
+    let (pieces, _) = m.part_pieces(rc);
+    ui.tooltip(id, Rect::new(x0 - 2.0, y - 2.0, right - x0 + 4.0, CHIP_H + 4.0), || {
+        let mut lines = vec![("The colour after each layer, left to right:".to_string(), TEXT)];
+        for (k, (p, c)) in pieces.iter().zip(&stages).enumerate() {
+            let what = if k == 0 { format!("first layer: {p}") } else { format!("glaze {k}: {}", p.trim_start_matches("then ")) };
+            lines.push((format!("{}. {what}  ({})", k + 1, to_hex(*c)), MUTED));
+        }
+        lines
+    });
 }

@@ -1,0 +1,130 @@
+{
+  "steps": [
+    {
+      "detail": "value box percentages add up to 100.0% of the picture",
+      "passed": true,
+      "step": "value_shares"
+    },
+    {
+      "detail": "value view shows 5 grey levels (asked for 5)",
+      "passed": true,
+      "step": "values"
+    },
+    {
+      "detail": "dragged a crop frame over the picture: 1200x800 became 720x480 (60% x 60% of the original)",
+      "passed": true,
+      "step": "move"
+    },
+    {
+      "detail": "10 colour levels, 10 Kubelka-Munk recipes from the palette, mean colour difference dE 2.1",
+      "passed": true,
+      "step": "act"
+    },
+    {
+      "detail": "Cobalt Blue + Lemon Yellow mix to [41, 132, 131], hue 195 degrees (green)",
+      "passed": true,
+      "step": "mixing"
+    },
+    {
+      "detail": "recipes are worked out with Some(Spectral) Kubelka-Munk",
+      "passed": true,
+      "step": "spectral_default"
+    },
+    {
+      "detail": "hovering the mixing model explains it: \"Spectral: each paint's colour becomes a smooth reflectance curve\"",
+      "passed": true,
+      "step": "mix_model_tooltip"
+    },
+    {
+      "detail": "RGB model chosen: 10 recipes worked out again, mean dE 3.0",
+      "passed": true,
+      "step": "mix_model_rgb"
+    },
+    {
+      "detail": "spectral model chosen again: 10 recipes, mean dE 2.1; Crimson + Phthalo Green mix to [63, 63, 65], a near-neutral grey (chroma 1.3)",
+      "passed": true,
+      "step": "mix_model_spectral"
+    },
+    {
+      "detail": "clicked spot [150, 149, 169] got a recipe: 4 Ultramarine Blue + 3 Crimson + 2 Phthalo Green",
+      "passed": true,
+      "step": "pick"
+    },
+    {
+      "detail": "hovering the clicked spot's match label shows the dE explanation: \"Colour match: excellent  (dE 1.6)\"",
+      "passed": true,
+      "step": "match_tooltip"
+    },
+    {
+      "detail": "Fibonacci spiral drawn with 336 line segments",
+      "passed": true,
+      "step": "overlay_fibonacci"
+    },
+    {
+      "detail": "golden ratio grid drawn with 4 lines at 38.2% and 61.8%",
+      "passed": true,
+      "step": "overlay_golden"
+    },
+    {
+      "detail": "grid drawn with 8 lines",
+      "passed": true,
+      "step": "overlay_grid"
+    },
+    {
+      "detail": "value scale, level counts, palette, clicked-spot recipe, recipe list and rule-of-thirds overlay are drawn",
+      "passed": true,
+      "step": "hud"
+    },
+    {
+      "detail": "contour view draws lines on paper: 3.7% of the pixels are lines (detail 5)",
+      "passed": true,
+      "step": "contours"
+    },
+    {
+      "detail": "contour lines drawn over the original picture (12760 pixels)",
+      "passed": true,
+      "step": "contours_on_top"
+    },
+    {
+      "detail": "Export PDF wrote a 209 KB brochure with 5 pages and 4 pictures (original, values, contours, colour levels), ending with the match rating legend",
+      "passed": true,
+      "step": "export_pdf"
+    },
+    {
+      "detail": "created \"Acrylic 3\" (Acrylic) with paints: Hansa Yellow Light PY3 Transparent; Crimson PR206 Transparent",
+      "passed": true,
+      "step": "palette"
+    },
+    {
+      "detail": "switched to acrylic: palette \"Acrylic 1\", recipes recomputed, lighter colours use white paint",
+      "passed": true,
+      "step": "medium"
+    },
+    {
+      "detail": "the recent menu lists one picture and \"Clear recent list\"",
+      "passed": true,
+      "step": "recent_menu"
+    },
+    {
+      "detail": "picked \"palettecraft-selftest.png\" from the recent menu and it opened as \"palettecraft-selftest.png\" (list kept in memory only)",
+      "passed": true,
+      "step": "open_recent"
+    },
+    {
+      "detail": "after each change the picture's settings are kept in the recent list",
+      "passed": true,
+      "step": "settings_kept"
+    },
+    {
+      "detail": "reopened the picture with its own settings: Value levels view, 3 value levels, Grid overlay, crop Some((60, 40, 300, 240)), clicked spot restored",
+      "passed": true,
+      "step": "settings_restored"
+    },
+    {
+      "detail": "the × removed the picture from the recent list and the menu stayed open, now empty",
+      "passed": true,
+      "step": "recent_remove"
+    }
+  ],
+  "version": 1
+}

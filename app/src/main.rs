@@ -40,6 +40,10 @@ struct Args {
     pane: Option<usize>,
     /// Screenshot of this view alone, without overlay or clicked spot (pictures for the website).
     view: Option<View>,
+    /// Start with glazing recipes instead of mixtures.
+    glaze: bool,
+    /// Kind of paint to start with (watercolor, acrylic, oil), for screenshots.
+    medium: Option<palette::Medium>,
 }
 
 impl Args {
@@ -51,6 +55,10 @@ impl Args {
                 "--screenshot" => a.screenshot = it.next(),
                 "--self-test" => a.self_test = it.next(),
                 "--palettes" => a.palettes = true,
+                "--glaze" => a.glaze = true,
+                "--medium" => {
+                    a.medium = it.next().and_then(|v| palette::Medium::ALL.into_iter().find(|m| m.label().eq_ignore_ascii_case(&v)))
+                }
                 "--pane" => a.pane = it.next().and_then(|v| v.parse().ok()),
                 "--view" => a.view = it.next().and_then(|v| View::ALL.into_iter().find(|k| k.id() == format!("view_{v}"))),
                 "--window" => {
@@ -147,6 +155,12 @@ async fn run(args: Args) {
         app.screen = app::Screen::Painting;
     } else if args.background() {
         app.set_image("Sample landscape".into(), imgproc::sample_landscape(1200, 800));
+    }
+    if args.glaze {
+        app.method = km::Method::Glaze;
+    }
+    if let Some(m) = args.medium {
+        app.select_medium(m);
     }
     if args.screenshot.is_some() {
         app.screen = app::Screen::Painting;
