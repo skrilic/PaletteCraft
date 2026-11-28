@@ -414,10 +414,22 @@ impl App {
         y += 36.0;
         // kinds of paint it is for; at least one stays ticked
         ui.text("For", x, y + 18.0, 14.0, MUTED);
+        // three equal columns where every label fits; on a narrow panel (phone) each column
+        // takes its own label's width plus an equal share of what is left
         let cw = (bw - 40.0) / 3.0;
+        let widths: Vec<f32> = Medium::ALL.iter().map(|m| 24.0 + ui.measure(m.label(), 15.0) + 4.0).collect();
+        let col_w: Vec<f32> = if widths.iter().all(|w| *w <= cw) {
+            vec![cw; widths.len()]
+        } else {
+            let spare = ((bw - 40.0 - widths.iter().sum::<f32>()) / widths.len() as f32).max(6.0);
+            widths.iter().map(|w| w + spare).collect()
+        };
+        let mut cx = x + 40.0;
         for (k, m) in Medium::ALL.iter().enumerate() {
             let mut on = c.has_use(*m);
-            if ui.checkbox(&format!("libc_use_{k}"), Rect::new(x + 40.0 + k as f32 * cw, y, cw - 4.0, 26.0), m.label(), &mut on) {
+            let cr = Rect::new(cx, y, col_w[k] - 4.0, 26.0);
+            cx += col_w[k];
+            if ui.checkbox(&format!("libc_use_{k}"), cr, m.label(), &mut on) {
                 if on {
                     c.uses.push(*m);
                     c.uses.sort_by_key(|u| Medium::ALL.iter().position(|v| v == u));

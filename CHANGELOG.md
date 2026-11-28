@@ -25,9 +25,8 @@ version 0.3.2). The newest version is at the top.
   transparent or half-transparent paints go on top, for example *"Cobalt Blue, then
   Crimson, then Lemon Yellow"*, with the strength of each layer (*"like tea / like milk /
   light wash"*). Small chips beside each recipe, and beside the clicked spot's, show the
-  colour after each layer. *Layers*
-  sets how many paints a recipe may use. Each picture remembers its choice, and the PDF
-  brochure lists the glazing recipes.
+  colour after each layer. *Layers* sets how many paints a recipe may use. Each picture
+  remembers its choice, and the PDF brochure lists the glazing recipes.
 
 - **Spectral paint mixing.** Recipes and the mixing chart now mix paints wavelength by
   wavelength (spectral Kubelka-Munk) instead of only by red, green and blue, which comes
@@ -40,6 +39,9 @@ version 0.3.2). The newest version is at the top.
   *Open picture...* has a × that removes it, with its saved settings; the list stays open,
   so you can remove several. In the web app this also deletes its copy in the browser.
   *Clear recent list* still removes all of them.
+
+- **Phones:** a message too long for one line at the bottom of the screen now takes two
+  lines instead of being cut short.
 
 ## 0.4.0 – 21 November 2026
 

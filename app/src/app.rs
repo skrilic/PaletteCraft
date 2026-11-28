@@ -986,12 +986,36 @@ impl App {
             return;
         }
         let (w, h) = (screen_width(), screen_height());
-        let tw = (ui.measure(&self.status, 15.0) + 24.0).min(w - 16.0);
-        let r = Rect::new((w - tw) / 2.0, h - 54.0, tw, 34.0);
+        let max_tw = w - 16.0;
+        // a message too long for one line breaks at a word into two (the second is cut short
+        // if it still does not fit)
+        let lines = toast_lines(ui, &self.status, max_tw - 24.0);
+        let tw = lines.iter().map(|l| ui.measure(l, 15.0) + 24.0).fold(0.0, f32::max).min(max_tw);
+        let th = 16.0 + 18.0 * lines.len() as f32;
+        let r = Rect::new((w - tw) / 2.0, h - 20.0 - th, tw, th);
         draw_rectangle(r.x + 2.0, r.y + 3.0, r.w, r.h, Color::new(0.0, 0.0, 0.0, 0.35));
         crate::ui::rrect(r, 8.0, BG);
         crate::ui::rrect_lines(r, 8.0, ui::ACCENT);
-        ui.text_fit(&self.status, r.x + 12.0, r.y + 22.0, 15.0, TEXT, r.w - 24.0);
+        for (k, l) in lines.iter().enumerate() {
+            ui.text_fit(l, r.x + 12.0, r.y + 22.0 + 18.0 * k as f32, 15.0, TEXT, r.w - 24.0);
+        }
+    }
+}
+
+/// `s` as one line if it fits in `w`, else broken at the last space that lets the first
+/// line fit.
+fn toast_lines(ui: &Ui, s: &str, w: f32) -> Vec<String> {
+    if ui.measure(s, 15.0) <= w {
+        return vec![s.to_string()];
+    }
+    let split = s
+        .match_indices(' ')
+        .map(|(i, _)| i)
+        .take_while(|&i| ui.measure(&s[..i], 15.0) <= w)
+        .last();
+    match split {
+        Some(i) => vec![s[..i].to_string(), s[i + 1..].to_string()],
+        None => vec![s.to_string()],
     }
 }
 
