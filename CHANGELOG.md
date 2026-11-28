@@ -3,7 +3,7 @@
 What changed in each version of PaletteCraft (called Painting Colour Assistant up to
 version 0.3.2). The newest version is at the top.
 
-## Unreleased
+## 0.5.0 – 28 November 2026
 
 - **Close a picture.** A *Close* button beside the picture's name (on a phone: in place of
   *Sample* while a picture is open) closes it; its settings stay in the recent list.
