@@ -18,6 +18,11 @@ for every colour, made from the paints in your own palettes.
   has a name, pigment code (e.g. `PR206`), transparency (transparent / half-transparent /
   opaque), masstone colour and tinting strength. Pick from a library of 45 common pigments
   or enter your own. Each palette shows a chart of every pair of its paints mixed.
+- **Colour library** – besides the fixed general library of 45 pigments, keep your own
+  colours: name, pigment(s), transparency, colour, brand (e.g. your paint maker, or
+  *My colours*) and what they are for (watercolor, acrylic, oil). Add them with
+  *+ New colour* or *Save to my colour library*, edit or delete them any time. Filter the
+  library by brand and use, search it, and group it by brand or use.
 - **Media** – watercolor, acrylic or oil. Watercolor lightens with water over paper;
   acrylic and oil lighten with white paint.
 - **Picture views** – original, greyscale, value levels (2–10), colour levels (2–24) and

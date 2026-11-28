@@ -5,6 +5,19 @@ version 0.3.2). The newest version is at the top.
 
 ## Unreleased
 
+- **Close a picture.** A *Close* button beside the picture's name (on a phone: in place of
+  *Sample* while a picture is open) closes it; its settings stay in the recent list.
+- **Cancel a new colour.** A colour you have just added to your library (*+ New colour* or
+  *Save to my colour library*) shows *Cancel* and *Save*: *Cancel* takes it out again.
+
+- **Your own colour library.** The pigment library on the Palettes screen is now a colour
+  library you can add to. *+ New colour* (or *Save to my colour library* on a palette
+  paint) adds a colour with its name, pigment(s), transparency, colour, brand or library
+  name (for example *My colours*) and what it is for: watercolor, acrylic and/or oil. Your
+  colours have an *Edit* button and can be deleted; the 45 general colours stay fixed. Filter
+  the library by brand and by use, search it, and group it by brand or by use. Your colours
+  are saved with your palettes; a palette keeps its own copy of a colour you added to it.
+
 - **Glazing.** A new *Method* switch beside the paints chooses between *Mix* (as before)
   and *Glaze*: each colour is then reached by painting transparent layers over one
   another. Watercolor recipes start with a wash of one paint on the paper; acrylic and oil

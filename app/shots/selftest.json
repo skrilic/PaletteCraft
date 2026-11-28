@@ -116,6 +116,61 @@
       "step": "palette"
     },
     {
+      "detail": "\"Save to my colour library\" kept Crimson PR206 (brand \"My colours\", for Acrylic) and opened it in the editor",
+      "passed": true,
+      "step": "library_save"
+    },
+    {
+      "detail": "edited to Opera Rose PR122 by \"Test Brand\", Half-transparent, for Watercolor + Acrylic; the palette's paint stays \"Crimson\" (palettes keep copies)",
+      "passed": true,
+      "step": "library_edit"
+    },
+    {
+      "detail": "\"+ New colour\" added \"New colour\" (brand \"Test Brand\" from the last edit, for Acrylic); Save kept it and closed the editor",
+      "passed": true,
+      "step": "library_new"
+    },
+    {
+      "detail": "a colour just added shows Cancel and Save instead of Delete and Done",
+      "passed": true,
+      "step": "library_new_offers_cancel"
+    },
+    {
+      "detail": "Cancel took the new colour out again (2 colours in your library)",
+      "passed": true,
+      "step": "library_cancel"
+    },
+    {
+      "detail": "brand filter \"Test Brand\" lists 2 colours: Opera Rose, New colour",
+      "passed": true,
+      "step": "library_brand_filter"
+    },
+    {
+      "detail": "use filter Oil lists 45 colours, all for oil (your two watercolor/acrylic colours are hidden)",
+      "passed": true,
+      "step": "library_use_filter"
+    },
+    {
+      "detail": "grouped by use: Acrylic (1), Watercolor + Acrylic (1), Any paint (45)",
+      "passed": true,
+      "step": "library_group"
+    },
+    {
+      "detail": "grouped by brand: Test Brand, General; Edit only on your own colours, not on the general ones",
+      "passed": true,
+      "step": "library_fixed_general"
+    },
+    {
+      "detail": "Edit opened Opera Rose; \"Add to palette\" added Opera Rose PR122",
+      "passed": true,
+      "step": "library_to_palette"
+    },
+    {
+      "detail": "Delete (clicked twice) removed Opera Rose from the library (1 left); the palette keeps its copy",
+      "passed": true,
+      "step": "library_delete"
+    },
+    {
       "detail": "switched to acrylic: palette \"Acrylic 1\", recipes recomputed, lighter colours use white paint",
       "passed": true,
       "step": "medium"
@@ -149,6 +204,16 @@
       "detail": "the × removed the picture from the recent list and the menu stayed open, now empty",
       "passed": true,
       "step": "recent_remove"
+    },
+    {
+      "detail": "an open picture shows a Close button beside its name",
+      "passed": true,
+      "step": "close_button"
+    },
+    {
+      "detail": "Close closed the picture: no picture, levels, recipes or clicked spot left; Open picture... is still there",
+      "passed": true,
+      "step": "close_picture"
     }
   ],
   "version": 1

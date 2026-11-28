@@ -522,6 +522,60 @@
       "estimated": true
     },
     {
+      "name": "my colour library fields",
+      "group": "library",
+      "value": "name, pigment(s), transparency, colour, tinting strength, brand or library name, uses (watercolor / acrylic / oil, at least one)",
+      "source": "request: \"add a colour with its name, pigment(s), transparency, use and producer brand\""
+    },
+    {
+      "name": "my colours editable",
+      "group": "library",
+      "value": "edit and delete (delete needs a second click); general colours are fixed",
+      "source": "request: \"possible to remove or edit any of them unlike the fixed general colours library\""
+    },
+    {
+      "name": "library filters",
+      "group": "library",
+      "value": "search, brand (All / own brands / General), use (All / Watercolor / Acrylic / Oil)",
+      "source": "request: \"grouping or filtering colours by its use or brand\""
+    },
+    {
+      "name": "library grouping",
+      "group": "library",
+      "value": "Brand (default), Use, None",
+      "source": "request: \"grouping or filtering colours by its use or brand\""
+    },
+    {
+      "name": "cancel a new colour",
+      "group": "library",
+      "value": "Cancel and Save replace Delete and Done until the new colour is saved",
+      "source": "request: \"no way to cancel the new colour action\""
+    },
+    {
+      "name": "close picture",
+      "group": "flow",
+      "value": "Close beside the picture name (compact: in place of Sample); settings stay in the recent list",
+      "source": "request: \"there is not Close the image possibility\""
+    },
+    {
+      "name": "default brand",
+      "group": "library",
+      "value": "My colours",
+      "estimated": true
+    },
+    {
+      "name": "general library brand",
+      "group": "library",
+      "value": "General (for every kind of paint)",
+      "estimated": true
+    },
+    {
+      "name": "library to palette",
+      "group": "library",
+      "value": "copy: later edits to the library colour do not change palettes",
+      "estimated": true
+    },
+    {
       "name": "overlays",
       "group": "overlay",
       "value": "None, Rule of thirds, Golden ratio, Fibonacci spiral, Grid",

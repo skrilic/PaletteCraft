@@ -96,6 +96,129 @@ pub struct Palette {
 pub struct Store {
     pub version: u32,
     pub palettes: Vec<Palette>,
+    /// The artist's own colour library (editable), shown with the fixed general `LIBRARY`.
+    /// Palettes saved before it existed load with an empty one.
+    #[serde(default)]
+    pub library: Vec<LibColour>,
+}
+
+/// Brand shown for the fixed general library.
+pub const GENERAL_BRAND: &str = "General";
+/// Brand given to a new colour when nothing else suggests one.
+pub const DEFAULT_BRAND: &str = "My colours";
+/// Group name for colours without a brand.
+pub const NO_BRAND: &str = "No brand";
+
+/// A colour in the artist's own library: like a palette paint, plus its brand (or the
+/// name of the artist's own library) and the kinds of paint it is made for.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct LibColour {
+    pub name: String,
+    /// Pigment code(s), e.g. "PR206" or "PB29+PV19".
+    pub pigment: String,
+    pub transparency: Transparency,
+    /// Masstone colour (sRGB).
+    pub color: [u8; 3],
+    #[serde(default = "one")]
+    pub strength: f32,
+    /// Brand or library name, e.g. "My colours".
+    #[serde(default)]
+    pub brand: String,
+    /// Watercolor, acrylic and/or oil (at least one).
+    #[serde(default = "all_media")]
+    pub uses: Vec<Medium>,
+}
+
+fn all_media() -> Vec<Medium> {
+    Medium::ALL.to_vec()
+}
+
+impl LibColour {
+    pub fn to_paint(&self) -> Paint {
+        Paint {
+            name: self.name.clone(),
+            pigment: self.pigment.clone(),
+            transparency: self.transparency,
+            color: self.color,
+            strength: self.strength,
+        }
+    }
+
+    pub fn from_paint(p: &Paint, brand: &str, uses: Vec<Medium>) -> Self {
+        LibColour {
+            name: p.name.clone(),
+            pigment: p.pigment.clone(),
+            transparency: p.transparency,
+            color: p.color,
+            strength: p.strength,
+            brand: brand.to_string(),
+            uses,
+        }
+    }
+
+    /// A colour of the fixed general library, as a library colour for every kind of paint.
+    pub fn general(lp: &LibraryPigment) -> Self {
+        LibColour {
+            name: lp.name.to_string(),
+            pigment: lp.code.to_string(),
+            transparency: lp.transparency,
+            color: lp.color,
+            strength: lp.strength,
+            brand: GENERAL_BRAND.to_string(),
+            uses: all_media(),
+        }
+    }
+
+    /// Brand as shown and grouped: trimmed, "No brand" when empty.
+    pub fn brand_label(&self) -> &str {
+        let b = self.brand.trim();
+        if b.is_empty() { NO_BRAND } else { b }
+    }
+
+    pub fn has_use(&self, m: Medium) -> bool {
+        self.uses.contains(&m)
+    }
+
+    /// Group name when grouped by use: "Watercolor", "Acrylic + Oil", or "Any paint" for all three.
+    pub fn uses_label(&self) -> String {
+        let uses: Vec<&str> = Medium::ALL.iter().filter(|m| self.has_use(**m)).map(|m| m.label()).collect();
+        match uses.len() {
+            0 => "No use set".to_string(),
+            3 => "Any paint".to_string(),
+            _ => uses.join(" + "),
+        }
+    }
+
+    /// Order of the use groups: single kinds first (watercolor, acrylic, oil), then pairs, then any.
+    pub fn uses_order(&self) -> (usize, usize) {
+        let first = Medium::ALL.iter().position(|m| self.has_use(*m)).unwrap_or(3);
+        let n = Medium::ALL.iter().filter(|m| self.has_use(**m)).count();
+        (if n == 0 { 4 } else { n }, first)
+    }
+}
+
+/// Brands compare without case and surrounding spaces.
+pub fn same_brand(a: &str, b: &str) -> bool {
+    a.trim().eq_ignore_ascii_case(b.trim())
+}
+
+/// A few colours of the artist's own library, for screenshots (`--my-colours`).
+pub fn sample_library() -> Vec<LibColour> {
+    let mk = |name: &str, code: &str, t: Transparency, color: [u8; 3], brand: &str, uses: &[Medium]| LibColour {
+        name: name.into(),
+        pigment: code.into(),
+        transparency: t,
+        color,
+        strength: 1.0,
+        brand: brand.into(),
+        uses: uses.to_vec(),
+    };
+    vec![
+        mk("Opera Rose", "PR122+BV10", Transparency::Transparent, [226, 70, 140], "My colours", &[Medium::Watercolor]),
+        mk("Green Gold", "PY129", Transparency::Transparent, [160, 150, 40], "My colours", &[Medium::Watercolor, Medium::Acrylic]),
+        mk("Shadow Violet", "PB29+PR101", Transparency::HalfTransparent, [92, 80, 118], "Studio Line", &[Medium::Watercolor]),
+        mk("Warm Grey", "PW6+PBk11+PBr7", Transparency::Opaque, [150, 142, 130], "Studio Line", &[Medium::Acrylic, Medium::Oil]),
+    ]
 }
 
 pub struct LibraryPigment {
@@ -246,7 +369,7 @@ pub fn default_store() -> Store {
             lib_paint("Ivory Black"),
         ],
     };
-    Store { version: 1, palettes: vec![wc1, wc2, ac1, ac2, oil1] }
+    Store { version: 1, palettes: vec![wc1, wc2, ac1, ac2, oil1], library: Vec::new() }
 }
 
 /// Name of the saved palettes (see `storage`).
@@ -263,4 +386,44 @@ pub fn load_store() -> (Store, bool) {
 pub fn save_store(store: &Store) -> Result<(), String> {
     let text = serde_json::to_string_pretty(store).map_err(|e| e.to_string())?;
     crate::storage::write(STORE_FILE, &text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// palettes.json saved before the colour library existed still loads, with an empty library.
+    #[test]
+    fn old_palettes_file_loads_without_library() {
+        let old = r#"{"version":1,"palettes":[{"name":"W","medium":"Watercolor","paints":[
+            {"name":"Crimson","pigment":"PR206","transparency":"Transparent","color":[140,32,52]}]}]}"#;
+        let s: Store = serde_json::from_str(old).unwrap();
+        assert_eq!(s.palettes[0].paints[0].name, "Crimson");
+        assert!(s.library.is_empty());
+    }
+
+    /// The artist's own colours survive saving and loading; a colour saved without brand or
+    /// uses gets no brand and every kind of paint.
+    #[test]
+    fn library_round_trips() {
+        let mut s = default_store();
+        s.library = sample_library();
+        let text = serde_json::to_string_pretty(&s).unwrap();
+        let back: Store = serde_json::from_str(&text).unwrap();
+        assert_eq!(back.library, s.library);
+        let bare = r#"{"name":"X","pigment":"PY3","transparency":"Opaque","color":[1,2,3]}"#;
+        let c: LibColour = serde_json::from_str(bare).unwrap();
+        assert_eq!(c.brand_label(), NO_BRAND);
+        assert_eq!(c.uses, Medium::ALL.to_vec());
+        assert_eq!(c.uses_label(), "Any paint");
+    }
+
+    #[test]
+    fn brands_and_uses_group_sensibly() {
+        assert!(same_brand(" My Colours ", "my colours"));
+        let lib = sample_library();
+        assert_eq!(lib[1].uses_label(), "Watercolor + Acrylic");
+        assert!(lib[0].uses_order() < lib[1].uses_order());
+        assert!(lib[1].uses_order() < LibColour::general(&LIBRARY[0]).uses_order());
+    }
 }

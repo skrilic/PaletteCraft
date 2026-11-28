@@ -73,7 +73,13 @@ impl App {
             }
             let rest = bw - ow - 42.0;
             let sx = menu.x + menu.w + 6.0;
-            if ui.button("sample_image", Rect::new(sx, y, rest * 0.55 - 3.0, row_h), "Sample") {
+            // with a picture open this slot closes it; without one it opens the sample
+            let sr = Rect::new(sx, y, rest * 0.55 - 3.0, row_h);
+            if self.img.is_some() {
+                if ui.button("close_image", sr, "Close") {
+                    self.close_image();
+                }
+            } else if ui.button("sample_image", sr, "Sample") {
                 self.set_image("Sample landscape".into(), imgproc::sample_landscape(1200, 800));
             }
             let cr = Rect::new(sx + rest * 0.55 + 3.0, y, rest * 0.45 - 3.0, row_h);
@@ -118,16 +124,23 @@ impl App {
             self.set_image("Sample landscape".into(), imgproc::sample_landscape(1200, 800));
         }
         y += 46.0;
+        let mut close_now = false;
         if let Some(img) = &self.img {
-            ui.text_fit(&img.name, x, y, 14.0, TEXT, bw);
+            let close = Rect::new(x + bw - 64.0, y - 14.0, 64.0, 28.0);
+            ui.text_fit(&img.name, x, y, 14.0, TEXT, bw - 72.0);
             let (ww, hh) = match img.crop {
                 Some((_, _, cw, ch)) => (cw, ch),
                 None => img.original.dimensions(),
             };
             let note = if img.crop.is_some() { " (cropped)" } else { "" };
-            ui.text(&format!("{ww} x {hh} px{note}"), x, y + 18.0, 13.0, MUTED);
+            ui.text_fit(&format!("{ww} x {hh} px{note}"), x, y + 18.0, 13.0, MUTED, bw - 72.0);
+            close_now = ui.button("close_image", close, "Close");
+            ui.tooltip("close_image_tip", close, || vec![("Close this picture (its settings are kept in the recent list)".to_string(), TEXT)]);
         } else {
             ui.text("No picture yet", x, y, 14.0, MUTED);
+        }
+        if close_now {
+            self.close_image();
         }
         y += 44.0;
 

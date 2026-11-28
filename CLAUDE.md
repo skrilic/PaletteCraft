@@ -19,6 +19,7 @@ cargo test                                    # km.rs unit tests
 cargo run -- --self-test shots/selftest.json  # scripted end-to-end test
 cargo run -- --screenshot shots/now.png       # render sample landscape to PNG
 cargo run -- --palettes                       # open on the Palettes screen
+cargo run -- --palettes --my-colours --screenshot x.png   # with sample colours of your own library
 cargo run -- <image path>                     # open with a picture
 cargo run -- --screenshot x.png --window 390x780 --pane 2   # compact (phone) layout, pane 0-2
 cargo run -- --glaze --medium oil --screenshot x.png   # glazing recipes, oil paints
@@ -108,7 +109,12 @@ python3 -m http.server -d target/web 8080     # serve it locally
 - `imgproc.rs` – working copy capped at `WORK_MAX_SIDE`; crops apply to the full original.
   Colour levels = seeded k-means++ in Lab (deterministic).
 - `colour.rs` – sRGB/linear/Lab, CIE76 ΔE. `palette.rs` – `Paint`, `Palette`, `Store`,
-  45-pigment `LIBRARY`, JSON persistence through `storage.rs`. `recent.rs` – recently opened
+  45-pigment `LIBRARY` (fixed, brand "General"), JSON persistence through `storage.rs`.
+  The artist's own colours are `Store::library: Vec<LibColour>` (`#[serde(default)]`, saved in
+  `palettes.json`; brand, `uses`). `App::library_rows()` builds the filtered, grouped list
+  (`LibRow`, `LibGroup`) for both the UI and the self-test; `App::lib_edit` switches the
+  right column of the Palettes screen from the paint editor to the library-colour editor
+  (widget ids `libc_*`, list ids `lib_*`). `--my-colours` seeds `sample_library()` for screenshots. `recent.rs` – recently opened
   pictures with their `PictureSettings` (`recent.json` beside `palettes.json`). `App`
   stores the open picture's settings each frame no mouse button is held, and in `set_image`
   before switching; `open_path` restores them. The web build keys its pictures as

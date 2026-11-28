@@ -44,6 +44,8 @@ struct Args {
     glaze: bool,
     /// Kind of paint to start with (watercolor, acrylic, oil), for screenshots.
     medium: Option<palette::Medium>,
+    /// Screenshots: a few colours in the artist's own library, the first open in the editor.
+    my_colours: bool,
 }
 
 impl Args {
@@ -56,6 +58,7 @@ impl Args {
                 "--self-test" => a.self_test = it.next(),
                 "--palettes" => a.palettes = true,
                 "--glaze" => a.glaze = true,
+                "--my-colours" => a.my_colours = true,
                 "--medium" => {
                     a.medium = it.next().and_then(|v| palette::Medium::ALL.into_iter().find(|m| m.label().eq_ignore_ascii_case(&v)))
                 }
@@ -179,6 +182,10 @@ async fn run(args: Args) {
         app.screen = app::Screen::Palettes;
         app.edit_palette = Some(0);
         app.select_paint(Some(0));
+    }
+    if args.my_colours && args.background() {
+        app.store.library = palette::sample_library();
+        app.select_lib_colour(Some(0));
     }
     if let Some(p) = args.pane {
         app.pane_painting = p;

@@ -9,7 +9,7 @@ use crate::colour::{srgb8_to_lab, to_hex};
 use crate::grid::{Overlay, OverlaySettings};
 use crate::imgproc::{self, Analysis, ColourLevels, ValueLevels};
 use crate::km::{MATCH_CLOSE, MATCH_EXCELLENT, MATCH_GOOD, Method, MixModel, Mixer, Recipe, match_label};
-use crate::palette::{self, Medium, Palette, Store, Transparency};
+use crate::palette::{self, LibColour, Medium, Palette, Store, Transparency};
 use crate::recent::{self, PictureSettings, Recent};
 use crate::ui::{self, BAD, BG, BORDER, GOOD, MUTED, PANEL, Pick, TEXT, Ui, WARN, col};
 use image::RgbImage;
@@ -89,6 +89,35 @@ pub struct LoadedImage {
     pub analysis: Analysis,
 }
 
+/// How the colour library is grouped.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibGroup {
+    Brand,
+    Use,
+    /// One list, no groups.
+    List,
+}
+
+impl LibGroup {
+    pub const ALL: [LibGroup; 3] = [LibGroup::Brand, LibGroup::Use, LibGroup::List];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            LibGroup::Brand => "Brand",
+            LibGroup::Use => "Use",
+            LibGroup::List => "None",
+        }
+    }
+}
+
+/// A row of the colour library list.
+pub enum LibRow {
+    /// Group name and how many colours follow.
+    Header(String, usize),
+    /// A colour: `custom` is its index in the artist's library, `None` for a general colour.
+    Colour { custom: Option<usize>, colour: LibColour },
+}
+
 #[derive(Clone, Copy)]
 enum CropDrag {
     New(Vec2),
@@ -115,6 +144,20 @@ pub struct App {
     hex_edit: String,
     lib_search: String,
     lib_scroll: usize,
+    /// Colour library filters: kind of paint (None = all) and brand (None = all, kept as text).
+    pub lib_use: Option<Medium>,
+    pub lib_brand: Option<String>,
+    pub lib_group: LibGroup,
+    /// Colour of the artist's own library open in the editor (index in `store.library`).
+    pub lib_edit: Option<usize>,
+    lib_confirm_delete: bool,
+    /// Colour just added ("+ New colour" or "Save to my colour library") and not yet saved:
+    /// its editor offers Cancel (remove it again) and Save instead of Delete and Done.
+    pub lib_unsaved: Option<usize>,
+    /// Brand of the colour edited last, given to the next new colour.
+    lib_last_brand: String,
+    /// Scroll the library list to the edited colour on the next frame.
+    lib_reveal: bool,
     paint_scroll: usize,
     confirm_delete: bool,
 
@@ -190,6 +233,14 @@ impl App {
             hex_edit: String::new(),
             lib_search: String::new(),
             lib_scroll: 0,
+            lib_use: None,
+            lib_brand: None,
+            lib_group: LibGroup::Brand,
+            lib_edit: None,
+            lib_confirm_delete: false,
+            lib_unsaved: None,
+            lib_last_brand: String::new(),
+            lib_reveal: false,
             paint_scroll: 0,
             confirm_delete: false,
             img: None,
@@ -280,7 +331,129 @@ impl App {
         self.say(format!("New palette \"{}\": add paints from the library", self.store.palettes[i].name));
     }
 
+    /// The colour library as listed: the artist's own colours and the general ones that pass
+    /// the search and the use and brand filters (the colour being edited always does),
+    /// with a header before each group.
+    pub fn library_rows(&self) -> Vec<LibRow> {
+        let q = self.lib_search.trim().to_lowercase();
+        let mut items: Vec<(Option<usize>, LibColour)> = self
+            .store
+            .library
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(i, c)| (Some(i), c))
+            .chain(palette::LIBRARY.iter().map(|lp| (None, LibColour::general(lp))))
+            .collect();
+        items.retain(|(ci, c)| {
+            (ci.is_some() && *ci == self.lib_edit)
+                || ((q.is_empty()
+                    || c.name.to_lowercase().contains(&q)
+                    || c.pigment.to_lowercase().contains(&q)
+                    || c.brand.to_lowercase().contains(&q))
+                    && self.lib_use.is_none_or(|m| c.has_use(m))
+                    && self.lib_brand.as_ref().is_none_or(|b| palette::same_brand(b, c.brand_label())))
+        });
+        let colour_row = |(custom, colour): (Option<usize>, LibColour)| LibRow::Colour { custom, colour };
+        let mut groups: Vec<(String, Vec<(Option<usize>, LibColour)>)> = Vec::new();
+        match self.lib_group {
+            LibGroup::List => return items.into_iter().map(colour_row).collect(),
+            LibGroup::Brand => {
+                for it in items {
+                    match groups.iter_mut().find(|(k, _)| palette::same_brand(k, it.1.brand_label())) {
+                        Some(g) => g.1.push(it),
+                        None => groups.push((it.1.brand_label().to_string(), vec![it])),
+                    }
+                }
+                // the artist's own brands first (A to Z), the general library last
+                groups.sort_by_key(|(k, _)| (palette::same_brand(k, palette::GENERAL_BRAND), k.to_lowercase()));
+            }
+            LibGroup::Use => {
+                let mut keyed: Vec<((usize, usize), String, Vec<_>)> = Vec::new();
+                for it in items {
+                    let label = it.1.uses_label();
+                    match keyed.iter_mut().find(|(_, k, _)| *k == label) {
+                        Some(g) => g.2.push(it),
+                        None => keyed.push((it.1.uses_order(), label, vec![it])),
+                    }
+                }
+                keyed.sort_by_key(|(order, _, _)| *order);
+                groups = keyed.into_iter().map(|(_, k, v)| (k, v)).collect();
+            }
+        }
+        let mut rows = Vec::new();
+        for (name, members) in groups {
+            rows.push(LibRow::Header(name, members.len()));
+            rows.extend(members.into_iter().map(colour_row));
+        }
+        rows
+    }
+
+    /// Brands in the library for the brand filter and picker: the artist's own (A to Z), then "General".
+    pub fn library_brands(&self) -> Vec<String> {
+        let mut brands: Vec<String> = Vec::new();
+        for c in &self.store.library {
+            let b = c.brand_label();
+            if !brands.iter().any(|k| palette::same_brand(k, b)) && !palette::same_brand(b, palette::GENERAL_BRAND) {
+                brands.push(b.to_string());
+            }
+        }
+        brands.sort_by_key(|b| b.to_lowercase());
+        brands.push(palette::GENERAL_BRAND.to_string());
+        brands
+    }
+
+    /// Opens colour `i` of the artist's library in the editor (or closes the editor).
+    pub fn select_lib_colour(&mut self, i: Option<usize>) {
+        self.lib_edit = i.filter(|&i| i < self.store.library.len());
+        self.lib_confirm_delete = false;
+        // leaving a new colour for anything else keeps it
+        if self.lib_unsaved != self.lib_edit {
+            self.lib_unsaved = None;
+        }
+        if let Some(i) = self.lib_edit {
+            self.edit_paint = None;
+            self.hex_edit = to_hex(self.store.library[i].color);
+            self.lib_last_brand = self.store.library[i].brand.trim().to_string();
+            self.lib_reveal = true;
+        } else if let Some(p) = self.edit_paint {
+            self.select_paint(Some(p));
+        }
+    }
+
+    /// Adds a colour to the artist's library and opens it in the editor.
+    pub fn add_lib_colour(&mut self, c: LibColour) {
+        self.store.library.push(c);
+        self.dirty = true;
+        self.select_lib_colour(Some(self.store.library.len() - 1));
+        self.lib_unsaved = self.lib_edit;
+    }
+
+    /// Brand for a new colour: the brand filter, else the brand edited last, else "My colours".
+    fn new_colour_brand(&self) -> String {
+        match &self.lib_brand {
+            Some(b) if !palette::same_brand(b, palette::GENERAL_BRAND) && !palette::same_brand(b, palette::NO_BRAND) => b.clone(),
+            _ if !self.lib_last_brand.is_empty() => self.lib_last_brand.clone(),
+            _ => palette::DEFAULT_BRAND.to_string(),
+        }
+    }
+
+    /// Kinds of paint for a new colour: the use filter, else the edited palette's, else all.
+    fn new_colour_uses(&self) -> Vec<Medium> {
+        if let Some(m) = self.lib_use {
+            return vec![m];
+        }
+        match self.edit_palette.and_then(|p| self.store.palettes.get(p)) {
+            Some(p) => vec![p.medium],
+            None => Medium::ALL.to_vec(),
+        }
+    }
+
     pub fn select_paint(&mut self, i: Option<usize>) {
+        if i.is_some() {
+            self.lib_edit = None;
+            self.lib_unsaved = None;
+        }
         self.edit_paint = i;
         if let (Some(p), Some(i)) = (self.edit_palette, i) {
             if let Some(paint) = self.store.palettes.get(p).and_then(|pal| pal.paints.get(i)) {
@@ -301,6 +474,23 @@ impl App {
         self.cropping = false;
         self.crop_tex = None;
         self.image_changed();
+    }
+
+    /// Closes the open picture (its settings stay in the recent list), back to "No picture yet".
+    pub fn close_image(&mut self) {
+        let Some(img) = &self.img else { return };
+        let name = img.name.clone();
+        self.remember_settings();
+        self.picture_path = None;
+        self.img = None;
+        self.cropping = false;
+        self.crop_sel = None;
+        self.crop_drag = None;
+        self.crop_tex = None;
+        self.texture = None;
+        self.display_rgba.clear();
+        self.image_changed();
+        self.say(format!("Closed \"{name}\""));
     }
 
     fn image_changed(&mut self) {

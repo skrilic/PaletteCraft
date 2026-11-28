@@ -11,6 +11,7 @@ in `mechanics.json`.
 | Screens | 1 Palettes, 2 Painting (tabs in the top bar) | request: "artist creates palettes at the beginning" |
 | First start | opens on Palettes; later starts open on Painting | estimated |
 | Open a picture | "Open picture..." file dialog, drop a file on the window, or pass a path on the command line | request |
+| Close a picture | "Close" beside the picture's name (compact layout: in place of "Sample" while a picture is open); back to "No picture yet", the picture's settings stay in the recent list | request: "there is not Close the image possibility" |
 | Recently opened | arrow button beside "Open picture..." lists recent pictures, newest first (file name and last two folders, "not found" if missing), each with a × that removes it and its settings (the menu stays open), then "Clear recent list"; every picture opened from a file is added | request |
 | Recent list length | 10 pictures in the menu; settings kept for the last 100 pictures | estimated |
 | Settings per picture | crop, view, value levels, colour levels, contour detail, lines on top, overlay (kind, grid cells, diagonals, mirroring, line colour and strength), paint type, palette (by name; first palette of that paint type if it is gone), paints per mix, lightening, mixing model, clicked spot; restored whenever that picture is opened again from a file. New pictures start with the current settings and no crop | request |
@@ -120,7 +121,13 @@ one paint stack exactly like one film of the summed thickness (unit test).
 | Transparency choices | Transparent, Half-transparent, Opaque | request |
 | Starter palettes | Watercolor 1, Watercolor 2, Acrylic 1, Acrylic 2, Oil 1 | request (examples) |
 | Watercolor 1 | Crimson PR206 (T), Cobalt Blue PB28 (HT), Yellow Deep PY35 (O), Lemon Yellow PY175, Ultramarine PB29, Burnt Sienna PBr7, Phthalo Green PG7 | request for the first three; codes and the rest estimated |
-| Pigment library | 45 common pigments with approximate masstone colours | estimated (not measured) |
+| General colour library | 45 common pigments with approximate masstone colours, brand "General", for every kind of paint; fixed (no Edit) | estimated (not measured) |
+| My colour library | the artist's own colours: name, pigment(s), transparency, colour, tinting strength, brand (or own library name), for watercolor / acrylic / oil (one or more); added with "+ New colour" or "Save to my colour library" (from a palette paint), edited with Edit, deleted with Delete clicked twice; saved with the palettes | request |
+| New colour defaults | name "New colour", pigment "P", half-transparent, grey 128; brand = the brand filter, else the brand edited last, else "My colours"; use = the use filter, else the palette's kind of paint | estimated |
+| Cancel a new colour | a colour just added ("+ New colour" or "Save to my colour library") shows Cancel (removes it again) and Save instead of Delete and Done; editing another colour or a paint, or "Add to palette", keeps it | request: "no way to cancel the new colour action" |
+| Library filters | search (name, code, brand), brand (All brands, the artist's brands A to Z, General), use (All, Watercolor, Acrylic, Oil); the colour being edited always stays listed | request |
+| Library grouping | Brand (default; own brands A to Z, General last), Use (Watercolor, Acrylic, Oil, then pairs such as "Watercolor + Acrylic", then "Any paint"; each colour once), None | request |
+| Library and palettes | adding a colour to a palette copies it; editing or deleting the library colour later leaves palettes unchanged | estimated |
 | Mixing chart | every pair at 1:1 plus 5 lighter steps per paint (water 1, 0.55, 0.3, 0.16, 0.075 or white 0, 1, 3, 8, 24 parts) | estimated |
 
 ## Overlays

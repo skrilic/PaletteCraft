@@ -414,6 +414,140 @@ impl SelfTest {
             res(r, "palette", ok, detail);
         })));
 
+        // Colour library: save the paint to the artist's own library, edit it, add another,
+        // filter by brand and use, group, add one to the palette, delete one.
+        q.push_back(Click("save_to_library"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let c = app.store.library.first();
+            let ok = app.store.library.len() == 1
+                && app.lib_edit == Some(0)
+                && ui.hud.contains("lib_colour_editor")
+                && app.lib_unsaved == Some(0)
+                && c.is_some_and(|c| c.name == "Crimson" && c.pigment == "PR206" && c.brand == crate::palette::DEFAULT_BRAND && c.uses == vec![Medium::Acrylic]);
+            let detail = c.map(|c| format!("\"Save to my colour library\" kept {} {} (brand \"{}\", for {}) and opened it in the editor", c.name, c.pigment, c.brand, c.uses_label())).unwrap_or("nothing saved".into());
+            res(r, "library_save", ok, detail);
+        })));
+        q.push_back(Click("libc_name"));
+        q.push_back(Backspace(7));
+        q.push_back(Type("Opera Rose"));
+        q.push_back(Click("libc_code"));
+        q.push_back(Backspace(5));
+        q.push_back(Type("PR122"));
+        q.push_back(Click("libc_brand"));
+        q.push_back(Backspace(10));
+        q.push_back(Type("Test Brand"));
+        q.push_back(Click("libc_use_0"));
+        q.push_back(Click("libc_transparency_1"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let c = &app.store.library[0];
+            let palette_kept = app.store.palettes.last().is_some_and(|p| p.paints.get(1).is_some_and(|x| x.name == "Crimson"));
+            let ok = c.name == "Opera Rose"
+                && c.pigment == "PR122"
+                && c.brand == "Test Brand"
+                && c.uses == vec![Medium::Watercolor, Medium::Acrylic]
+                && c.transparency == Transparency::HalfTransparent
+                && palette_kept;
+            res(
+                r,
+                "library_edit",
+                ok,
+                format!("edited to {} {} by \"{}\", {}, for {}; the palette's paint stays \"Crimson\" (palettes keep copies)", c.name, c.pigment, c.brand, c.transparency.label(), c.uses_label()),
+            );
+        })));
+        q.push_back(Click("lib_new"));
+        q.push_back(Wait(2));
+        q.push_back(Click("libc_save"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let c = app.store.library.get(1);
+            let ok = app.store.library.len() == 2
+                && app.lib_edit.is_none()
+                && app.lib_unsaved.is_none()
+                && c.is_some_and(|c| c.brand == "Test Brand" && c.uses == vec![Medium::Acrylic]);
+            let detail = c.map(|c| format!("\"+ New colour\" added \"{}\" (brand \"{}\" from the last edit, for {}); Save kept it and closed the editor", c.name, c.brand, c.uses_label())).unwrap_or("no new colour".into());
+            res(r, "library_new", ok, detail);
+        })));
+        // "+ New colour" can be cancelled: Cancel and Save replace Delete and Done until saved
+        q.push_back(Click("lib_new"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let ok = app.store.library.len() == 3
+                && app.lib_unsaved == Some(2)
+                && ui.rects.contains_key("libc_cancel")
+                && ui.rects.contains_key("libc_save")
+                && !ui.rects.contains_key("libc_delete");
+            res(r, "library_new_offers_cancel", ok, "a colour just added shows Cancel and Save instead of Delete and Done".into());
+        })));
+        q.push_back(Click("libc_cancel"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let ok = app.store.library.len() == 2 && app.lib_edit.is_none() && app.lib_unsaved.is_none();
+            res(r, "library_cancel", ok, format!("Cancel took the new colour out again ({} colours in your library)", app.store.library.len()));
+        })));
+        q.push_back(Click("lib_brand"));
+        q.push_back(Wait(1));
+        q.push_back(Click("lib_brand#1"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let rows = app.library_rows();
+            let colours: Vec<_> = rows.iter().filter_map(|x| if let crate::app::LibRow::Colour { custom, colour } = x { Some((custom, colour)) } else { None }).collect();
+            let ok = app.lib_brand.as_deref() == Some("Test Brand") && colours.len() == 2 && colours.iter().all(|(c, _)| c.is_some());
+            let names: Vec<&str> = colours.iter().map(|(_, c)| c.name.as_str()).collect();
+            res(r, "library_brand_filter", ok, format!("brand filter \"Test Brand\" lists {} colours: {}", colours.len(), names.join(", ")));
+        })));
+        q.push_back(Click("lib_brand"));
+        q.push_back(Wait(1));
+        q.push_back(Click("lib_brand#0"));
+        q.push_back(Click("lib_use_3"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let rows = app.library_rows();
+            let colours: Vec<_> = rows.iter().filter_map(|x| if let crate::app::LibRow::Colour { custom, colour } = x { Some((custom, colour)) } else { None }).collect();
+            let ok = app.lib_brand.is_none()
+                && app.lib_use == Some(Medium::Oil)
+                && colours.iter().all(|(_, c)| c.has_use(Medium::Oil))
+                && colours.iter().all(|(c, _)| c.is_none())
+                && colours.len() == crate::palette::LIBRARY.len();
+            res(r, "library_use_filter", ok, format!("use filter Oil lists {} colours, all for oil (your two watercolor/acrylic colours are hidden)", colours.len()));
+        })));
+        q.push_back(Click("lib_use_0"));
+        q.push_back(Click("lib_group_1"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let headers: Vec<String> = app.library_rows().iter().filter_map(|x| if let crate::app::LibRow::Header(h, n) = x { Some(format!("{h} ({n})")) } else { None }).collect();
+            let want = [format!("Acrylic (1)"), format!("Watercolor + Acrylic (1)"), format!("Any paint ({})", crate::palette::LIBRARY.len())];
+            let ok = app.lib_group == crate::app::LibGroup::Use && headers == want;
+            res(r, "library_group", ok, format!("grouped by use: {}", headers.join(", ")));
+        })));
+        q.push_back(Click("lib_group_0"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let headers: Vec<String> = app.library_rows().iter().filter_map(|x| if let crate::app::LibRow::Header(h, _) = x { Some(h.clone()) } else { None }).collect();
+            // only the artist's own colours have an Edit button; general ones are fixed
+            let ok = headers == ["Test Brand", "General"] && ui.rects.contains_key("lib_edit_0") && ui.rects.contains_key("lib_edit_1") && !ui.rects.contains_key("lib_edit_2") && ui.rects.contains_key("lib_row_2");
+            res(r, "library_fixed_general", ok, format!("grouped by brand: {}; Edit only on your own colours, not on the general ones", headers.join(", ")));
+        })));
+        q.push_back(Click("lib_edit_0"));
+        q.push_back(Wait(2));
+        q.push_back(Click("libc_add"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let last = app.store.palettes.last().and_then(|p| p.paints.last());
+            let ok = app.lib_edit == Some(0) && last.is_some_and(|p| p.name == "Opera Rose" && p.pigment == "PR122");
+            res(r, "library_to_palette", ok, format!("Edit opened Opera Rose; \"Add to palette\" added {}", last.map(|p| p.title()).unwrap_or_default()));
+        })));
+        q.push_back(Click("libc_delete"));
+        q.push_back(Wait(2));
+        q.push_back(Click("libc_delete"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, _ui, r| {
+            let kept = app.store.palettes.last().and_then(|p| p.paints.last()).is_some_and(|p| p.name == "Opera Rose");
+            let ok = app.store.library.len() == 1 && app.store.library[0].name == "New colour" && app.lib_edit.is_none() && kept;
+            res(r, "library_delete", ok, format!("Delete (clicked twice) removed Opera Rose from the library ({} left); the palette keeps its copy", app.store.library.len()));
+        })));
+
         // Switch the painting to acrylic paints.
         q.push_back(Click("tab_painting"));
         q.push_back(Wait(2));
@@ -564,6 +698,25 @@ impl SelfTest {
         })));
         q.push_back(Click("view_original"));
         q.push_back(Wait(2));
+
+        // Close the picture: back to "No picture yet", nothing derived from it is kept.
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let ok = app.img.is_some() && ui.rects.contains_key("close_image");
+            res(r, "close_button", ok, "an open picture shows a Close button beside its name".into());
+        })));
+        q.push_back(Click("close_image"));
+        q.push_back(Wait(2));
+        q.push_back(Check(Box::new(|app, ui, r| {
+            let ok = app.img.is_none()
+                && app.values.is_none()
+                && app.colours.is_none()
+                && app.picked.is_none()
+                && app.recipes.is_empty()
+                && !app.cropping
+                && !ui.rects.contains_key("close_image")
+                && ui.rects.contains_key("open_image");
+            res(r, "close_picture", ok, "Close closed the picture: no picture, levels, recipes or clicked spot left; Open picture... is still there".into());
+        })));
         SelfTest { queue: q, mouse: vec2(5.0, 5.0), pending: VecDeque::new(), results: Vec::new(), frames: 0 }
     }
 
