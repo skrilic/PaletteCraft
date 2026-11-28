@@ -1056,9 +1056,9 @@ fn match_tip(de: f32) -> Vec<(String, Color)> {
     lines
 }
 
-/// Recipe for a narrow card: the paints and parts broken over up to two lines where they
-/// do not fit, then how much to lighten and how well it matches. Returns the lines used.
-fn recipe_text_wrapped(ui: &mut Ui, id: &str, m: &Mixer, rc: &Recipe, x: f32, y: f32, w: f32) -> usize {
+/// The paints and parts of `rc` broken into at most `max_lines` lines of width `w`; a line
+/// that still does not fit is cut short when drawn.
+fn recipe_lines(ui: &Ui, m: &Mixer, rc: &Recipe, w: f32, max_lines: usize) -> Vec<String> {
     // mixture: "3 Cobalt Blue + 1 Crimson"; glazes: "Cobalt Blue, then Crimson"
     let (pieces, sep) = m.part_pieces(rc);
     let mut lines = vec![String::new()];
@@ -1066,13 +1066,21 @@ fn recipe_text_wrapped(ui: &mut Ui, id: &str, m: &Mixer, rc: &Recipe, x: f32, y:
         let n = lines.len();
         let last = &mut lines[n - 1];
         let joined = if k == 0 { piece.to_string() } else { format!("{last}{sep}{piece}") };
-        if k > 0 && ui.measure(&joined, 15.0) > w && n < 2 {
+        if k > 0 && ui.measure(&joined, 15.0) > w && n < max_lines {
             last.push_str(sep.trim_end());
             lines.push(piece.to_string());
         } else {
             *last = joined;
         }
     }
+    lines
+}
+
+/// Recipe for a narrow card: the paints and parts broken over up to `max_lines` lines where
+/// they do not fit, then how much to lighten and how well it matches. Returns the lines used.
+#[allow(clippy::too_many_arguments)]
+fn recipe_text_wrapped(ui: &mut Ui, id: &str, m: &Mixer, rc: &Recipe, x: f32, y: f32, w: f32, max_lines: usize) -> usize {
+    let lines = recipe_lines(ui, m, rc, w, max_lines);
     for (k, l) in lines.iter().enumerate() {
         ui.text_fit(l, x, y + 17.0 * k as f32, 15.0, TEXT, w);
     }

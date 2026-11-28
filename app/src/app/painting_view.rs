@@ -746,7 +746,7 @@ impl App {
                         layer_chips(ui, &format!("recipe_layers_{i}"), m, rc, rr.x + rr.w - 8.0, rr.y + 7.0);
                     }
                     if wrap {
-                        recipe_text_wrapped(ui, &format!("recipe_match_{i}"), m, rc, tx, rr.y + 36.0, tw);
+                        recipe_text_wrapped(ui, &format!("recipe_match_{i}"), m, rc, tx, rr.y + 36.0, tw, 2);
                     } else {
                         recipe_text(ui, &format!("recipe_match_{i}"), m, rc, tx, rr.y + 36.0, tw);
                     }
@@ -782,16 +782,20 @@ impl App {
                 ui.header(&format!("COLOUR LEVEL {}  ({:.0}% of the picture)", i + 1, c.share[i] * 100.0), x, y);
                 let y = y + 10.0;
                 swatch(Rect::new(x, y, 44.0, 44.0), c.srgb[i]);
+                let mut lines = 0;
                 match self.recipes.get(i).and_then(|r| r.as_ref()) {
                     Some(rc) => {
                         swatch(Rect::new(x + 48.0, y, 44.0, 44.0), rc.srgb);
-                        recipe_text_wrapped(ui, &format!("level_match_{i}"), m, rc, x + 100.0, y + 12.0, bw - 100.0);
+                        if !rc.glazes.is_empty() {
+                            layer_chips(ui, &format!("level_layers_{i}"), m, rc, x + bw, y - 21.0);
+                        }
+                        lines = recipe_text_wrapped(ui, &format!("level_match_{i}"), m, rc, x + 100.0, y + 12.0, bw - 100.0, PICKED_LINES);
                     }
                     None => ui.text("mixing...", x + 104.0, y + 26.0, 14.0, MUTED),
                 }
                 ui.text("level", x + 2.0, y + 58.0, 11.0, MUTED);
                 ui.text("mix", x + 60.0, y + 58.0, 11.0, MUTED);
-                return y + 68.0;
+                return y + picked_h(lines);
             }
         }
         ui.header("CLICKED SPOT", x, y);
@@ -799,10 +803,14 @@ impl App {
         ui.hud("picked");
         if let Some(p) = &self.picked {
             swatch(Rect::new(x, y, 44.0, 44.0), p.srgb);
+            let mut lines = 0;
             if let (Some(rc), Some(m)) = (&p.recipe, &self.mixer) {
                 swatch(Rect::new(x + 48.0, y, 44.0, 44.0), rc.srgb);
+                if !rc.glazes.is_empty() {
+                    layer_chips(ui, "picked_layers", m, rc, x + bw, y - 21.0);
+                }
                 if Self::compact() || !recipe_fits(ui, m, rc, bw - 104.0) {
-                    recipe_text_wrapped(ui, "picked_match", m, rc, x + 100.0, y + 12.0, bw - 100.0);
+                    lines = recipe_text_wrapped(ui, "picked_match", m, rc, x + 100.0, y + 12.0, bw - 100.0, PICKED_LINES);
                 } else {
                     recipe_text(ui, "picked_match", m, rc, x + 104.0, y + 16.0, bw - 104.0);
                 }
@@ -811,7 +819,7 @@ impl App {
             }
             ui.text("picture", x + 2.0, y + 58.0, 11.0, MUTED);
             ui.text("mix", x + 60.0, y + 58.0, 11.0, MUTED);
-            y + 68.0
+            y + picked_h(lines)
         } else {
             let hint = if self.view == View::Colours {
                 format!("{tap} the picture to pick out one colour level.")
@@ -831,6 +839,16 @@ impl App {
         rrect_lines(Rect::new(tx - 6.0, cy + 18.0, tw + 12.0, 24.0), 4.0, BORDER);
         ui.text(&s, tx, cy + 35.0, 14.0, TEXT);
     }
+}
+
+/// Lines the clicked spot's (or selected colour level's) paints may take: a three-layer
+/// glaze needs three on a phone, where the list rows have two.
+const PICKED_LINES: usize = 3;
+
+/// Height of the clicked-spot block below its header line, for a recipe drawn in `lines`
+/// lines (paints plus the lighten / match line; 0 when drawn by `recipe_text`).
+fn picked_h(lines: usize) -> f32 {
+    (12.0 + 17.0 * lines.saturating_sub(1) as f32 + 9.0).max(68.0)
 }
 
 /// Glazing recipe: one small chip per layer with the colour the painting has after that

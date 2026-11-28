@@ -24,7 +24,8 @@ version 0.3.2). The newest version is at the top.
   recipes with one paint mixed with white, or the bare white ground. Up to two glazes of
   transparent or half-transparent paints go on top, for example *"Cobalt Blue, then
   Crimson, then Lemon Yellow"*, with the strength of each layer (*"like tea / like milk /
-  light wash"*). Small chips beside each recipe show the colour after each layer. *Layers*
+  light wash"*). Small chips beside each recipe, and beside the clicked spot's, show the
+  colour after each layer. *Layers*
   sets how many paints a recipe may use. Each picture remembers its choice, and the PDF
   brochure lists the glazing recipes.
 
